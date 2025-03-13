@@ -1,0 +1,4 @@
+transactionType,transactionDate,invoiceNumber,invoiceDate,details,description,transactionAmount,transactionCategory,transactionMethod,storage
+inflow,2025-01-15,INV001,2025-01-10,Detail 1,Description 1,1000,Bonus,Cash,Dutch Bangla Bank
+outflow,2025-01-16,INV002,2025-01-12,Detail 2,Description 2,500,Final,Cheque,Brac Bank
+inflow,2025-01-17,INV003,2025-01-14,Detail 3,Description 3,750,Mobile Bill,Post Dated Cheque,Cash
