@@ -1,11 +1,9 @@
 /* eslint-disable @typescript-eslint/no-this-alias */
 import bcrypt from "bcrypt";
-import { Schema, model,Types } from "mongoose";
+import { Schema, model, Types } from "mongoose";
 import config from "../../config";
 import { UserStatus } from "./user.constant";
 import { TUser, UserModel } from "./user.interface";
-
-
 
 const userSchema = new Schema(
   {
@@ -49,27 +47,106 @@ const userSchema = new Schema(
     agentCourseRelations: [
       {
         type: Types.ObjectId,
-        ref: "Course",
+        ref: "CourseRelation",
       },
     ],
     status: {
       type: Number,
-      enum: [0, 1], 
-      default: 1, 
+      enum: [0, 1],
+      default: 1,
     },
     isDeleted: {
       type: Boolean,
       default: false,
     },
-    
-    contactPerson:{
+
+    contactPerson: {
       type: String,
-      default:""
-    }
+      default: "",
+    },
+    privileges: {
+      management: {
+        course: {
+          type: Boolean,
+          default: false,
+        },
+        term: {
+          type: Boolean,
+          default: false,
+        },
+        institution: {
+          type: Boolean,
+          default: false,
+        },
+        academicYear: {
+          type: Boolean,
+          default: false,
+        },
+        courseRelation: {
+          type: Boolean,
+          default: false,
+        },
+        emails: {
+          type: Boolean,
+          default: false,
+        },
+        drafts: {
+          type: Boolean,
+          default: false,
+        },
+        invoices: {
+          type: Boolean,
+          default: false,
+        },
+        staffs: {
+          type: Boolean,
+          default: false,
+        },
+        agent: {
+          type: Boolean,
+          default: false,
+        },
+      },
+      student: {
+        assignStaff: {
+          type: Boolean,
+          default: false,
+        },
+        account: {
+          type: Boolean,
+          default: false,
+        },
+        agentChange: {
+          type: Boolean,
+          default: false,
+        },
+        applicationStatus: {
+          type: Boolean,
+          default: false,
+        },
+        search: {
+          agent: {
+            type: Boolean,
+            default: false,
+          },
+          staff: {
+            type: Boolean,
+            default: false,
+          },
+        },
+        communication: {
+          type: Boolean,
+          default: false,
+        },
+        notes: {
+          type: Boolean,
+          default: false,
+        },
+      },
+    },
   },
   {
     timestamps: true,
-    
   }
 );
 

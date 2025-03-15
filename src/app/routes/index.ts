@@ -7,6 +7,9 @@ import { AcademicYearsRoutes } from "../modules/academic-years/academicYears.rou
 import { TermRoutes } from "../modules/term/term.route";
 import { EmailConfigRoutes } from "../modules/email-configs/email-configs.route";
 import { EmailDraftRoutes } from "../modules/email-drafts/email-drafts.route";
+import { CourseRelationRoutes } from "../modules/course-relation/courseRelation.route";
+import { StudentRoutes } from "../modules/student/student.route";
+import { AgentCourseRoutes } from "../modules/agent-course/agentCourse.route";
 
 const router = Router();
 
@@ -42,6 +45,18 @@ const moduleRoutes = [
   {
     path: "/email-drafts",
     route: EmailDraftRoutes,
+  },
+  {
+    path: "/course-relations",
+    route: CourseRelationRoutes,
+  },
+  {
+    path: "/students",
+    route: StudentRoutes,
+  },
+  {
+    path: "/agent-courses",
+    route: AgentCourseRoutes,
   },
   
 ];

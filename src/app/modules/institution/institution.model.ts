@@ -11,9 +11,7 @@ const institutionSchema = new Schema(
       default: 1,
     },
   },
-  {
-    timestamps: true,
-  }
+  
 );
 
 // Apply the type at the model level

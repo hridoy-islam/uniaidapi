@@ -33,10 +33,35 @@ export interface TUser {
   role: "admin" | "agent" | "staff" 
   organization: string;
   nominatedStaffs: Types.ObjectId[]; 
-  agentCourseRelations:Types.ObjectId[];
   status: 0 | 1; 
   isDeleted:boolean;
-  contactPerson?: string
+  contactPerson?: string;
+  privileges: {
+    management: {
+      course: boolean;
+      term: boolean;
+      institution: boolean;
+      academicYear: boolean;
+      courseRelation: boolean;
+      emails: boolean;
+      drafts: boolean;
+      invoices: boolean;
+      staffs: boolean;
+      agent: boolean;
+    };
+    student: {
+      assignStaff: boolean;
+      account: boolean;
+      agentChange: boolean;
+      applicationStatus: boolean;
+      search: {
+        agent: boolean;
+        staff: boolean;
+      };
+      communication: boolean;
+      notes: boolean;
+    };
+  };
 }
 
 

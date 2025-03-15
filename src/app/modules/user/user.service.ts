@@ -4,6 +4,9 @@ import { UserSearchableFields } from "./user.constant";
 import { TUser } from "./user.interface";
 import { User } from "./user.model";
 import AppError from "../../errors/AppError";
+import config from "../../config";
+import bcrypt from "bcrypt";
+
 
 const getAllUserFromDB = async (query: Record<string, unknown>) => {
   const userQuery = new QueryBuilder(User.find().populate('nominatedStaffs agentCourseRelations'), query)
@@ -23,7 +26,7 @@ const getAllUserFromDB = async (query: Record<string, unknown>) => {
 };
 
 const getSingleUserFromDB = async (id: string) => {
-  const result = await User.findById(id);
+  const result = await User.findById(id).populate("agentCourseRelations");
   return result;
 };
 
@@ -41,7 +44,12 @@ const updateUserIntoDB = async (id: string, payload: Partial<TUser>) => {
   // if (user.role === "company") {
   //   payload.isDeleted = newStatus;
   // }
-
+  if (payload.password) {
+    payload.password = await bcrypt.hash(
+      payload.password,
+      Number(config.bcrypt_salt_rounds)
+    );
+  }
   // Update only the selected user
   const result = await User.findByIdAndUpdate(id, payload, {
     new: true,
