@@ -10,6 +10,7 @@ import { EmailDraftRoutes } from "../modules/email-drafts/email-drafts.route";
 import { CourseRelationRoutes } from "../modules/course-relation/courseRelation.route";
 import { StudentRoutes } from "../modules/student/student.route";
 import { AgentCourseRoutes } from "../modules/agent-course/agentCourse.route";
+import { NoteRoutes } from "../modules/note/note.route";
 
 const router = Router();
 
@@ -57,6 +58,10 @@ const moduleRoutes = [
   {
     path: "/agent-courses",
     route: AgentCourseRoutes,
+  },
+  {
+    path: "/notes",
+    route: NoteRoutes,
   },
   
 ];

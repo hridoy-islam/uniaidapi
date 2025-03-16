@@ -2,19 +2,37 @@ import mongoose, { Schema, Document, CallbackError, Types } from "mongoose";
 import { TStudent } from "./student.interface";
 import { User } from "../user/user.model";
 
+// Define the schema for status logs
+const StatusLogSchema = new Schema({
+  prev_status: { type: String},
+  changed_to: { type: String },
+  assigned_by: { type: Schema.Types.ObjectId, ref: "User" },
+  changed_by: { type: Schema.Types.ObjectId, ref: "User"},
+  assigned_at: { type: Date },
+  created_at: { type: Date, default: Date.now }
+});
+
+// Define the schema for applications
+const ApplicationSchema = new Schema({
+  courseRelationId: { type: Schema.Types.ObjectId, ref: "CourseRelation" },
+  choice: { type: String },
+  amount: { type: String },
+  status: { type: String, default: "New" },
+  statusLogs: { type: [StatusLogSchema], default: [] },
+  created_at: { type: Date, default: Date.now }
+});
+
+// Define the schema for emergency contact
 const EmergencyContactSchema = new Schema({
   name: { type: String },
   relationship: { type: String },
   phone: { type: String },
   email: { type: String },
   address: { type: String },
-  status: {
-    type: Number,
-    enum: [0, 1],
-    default: 1,
-  },
+  status: { type: Number, enum: [0, 1], default: 1 },
 });
 
+// Define the schema for academic history
 const AcademicHistorySchema = new Schema({
   institution: { type: String },
   course: { type: String },
@@ -23,25 +41,19 @@ const AcademicHistorySchema = new Schema({
   outOf: { type: String },
   startDate: { type: String },
   endDate: { type: String },
-  status: {
-    type: Number,
-    enum: [0, 1],
-    default: 1,
-  },
+  status: { type: Number, enum: [0, 1], default: 1 },
 });
 
-const englishLanguageExamSchema = new Schema({
+// Define the schema for English language exam
+const EnglishLanguageExamSchema = new Schema({
   exam: { type: String },
   examDate: { type: Date },
   score: { type: String },
-  status: {
-    type: Number,
-    enum: [0, 1],
-    default: 1,
-  },
+  status: { type: Number, enum: [0, 1], default: 1 },
 });
 
-const workExperienceSchema = new Schema({
+// Define the schema for work experience
+const WorkExperienceSchema = new Schema({
   jobTitle: { type: String },
   organization: { type: String },
   address: { type: String },
@@ -49,16 +61,10 @@ const workExperienceSchema = new Schema({
   fromData: { type: String },
   toData: { type: String },
   currentlyWorking: { type: Boolean, default: false },
-  status: {
-    type: Number,
-    enum: [0, 1],
-    default: 1,
-  },
+  status: { type: Number, enum: [0, 1], default: 1 },
 });
 
-
-// const assignStaffSchema = new
-
+// Define the schema for student
 const StudentSchema = new Schema<TStudent>({
   refId: { type: String, required: true },
   status: { type: Number, enum: [0, 1], default: 1 },
@@ -104,15 +110,16 @@ const StudentSchema = new Schema<TStudent>({
   currentlyInUk: { type: Boolean, default: false },
   emergencyContact: { type: [EmergencyContactSchema], default: [] },
   academicHistory: { type: [AcademicHistorySchema], default: [] },
-  workDetails: { type: [workExperienceSchema], default: [] },
+  workDetails: { type: [WorkExperienceSchema], default: [] },
   agent: { type: Schema.Types.ObjectId, ref: "User" },
   documents: { type: [String], default: [] },
-  applications: { type: [String], default: [] },
-  assignStaff: [{ type: Schema.Types.ObjectId, ref: "User", default: [] }], // Updated to store ObjectId references
-  englishLanguageExam: { type: [englishLanguageExamSchema], default: [] },
+  applications: { type: [ApplicationSchema], default: [] }, // Updated to use ApplicationSchema
+  assignStaff: [{ type: Schema.Types.ObjectId, ref: "User", default: [] }],
+  englishLanguageExam: { type: [EnglishLanguageExamSchema], default: [] },
   accounts: [{ type: Schema.Types.ObjectId, ref: "Account" }],
+},{
+  timestamps: true
 });
-
 
 // Apply the type at the model level
 const Student = mongoose.model<TStudent>("Student", StudentSchema);

@@ -6,6 +6,8 @@ import AppError from "../../errors/AppError";
 import {studentSearchableFields } from "./student.constant";
 import { TStudent } from "./student.interface";
 import Student from "./student.model";
+import { User } from "../user/user.model";
+import { Types } from "mongoose";
 
 
 const generateRefId = async (): Promise<string> => {
@@ -40,7 +42,10 @@ const createStudentIntoDB = async (payload: TStudent) => {
   }
 };
 
+
 const getAllStudentFromDB = async (query: Record<string, unknown>) => {
+
+
   const StudentQuery = new QueryBuilder(Student.find(), query)
     .search(studentSearchableFields)
     .filter()
@@ -58,16 +63,72 @@ const getAllStudentFromDB = async (query: Record<string, unknown>) => {
 };
 
 const getSingleStudentFromDB = async (id: string) => {
-  const result = await Student.findById(id) .populate("agent") 
-  .populate("assignStaff", "name email status"); 
+  const result = await Student.findById(id)
+    .populate("agent")
+    .populate("assignStaff", "name email status")
+    .populate({
+      path: "applications.statusLogs",
+      select: "changed_to assigned_by changed_by assigned_at created_at",
+      populate: {
+        path: "assigned_by",
+        select: "name", 
+      }
+    })
+    .populate({
+      path: "applications.statusLogs",
+      populate: {
+        path: "changed_by", 
+        select: "name", 
+      }
+    })
+    .populate({
+      path: "applications.courseRelationId",
+      select: "institute course term", 
+      populate: {
+        path: "institute", 
+        select: "name" 
+      }
+    })
+    .populate({
+      path: "applications.courseRelationId",
+      populate: {
+        path: "course", 
+        select: "name" 
+      }
+    })
+    .populate({
+      path: "applications.courseRelationId",
+      populate: {
+        path: "term",
+        select: "term" 
+      }
+    });
+
   return result;
 };
+
 
 const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
   const student = await Student.findById(id);
 
   if (!student) {
     throw new AppError(httpStatus.NOT_FOUND, "Student not found");
+  }
+  if (payload.agent) {
+    const agent = await User.findById(payload.agent);
+    if (!agent) {
+      throw new AppError(httpStatus.NOT_FOUND, "Agent not found");
+    }
+
+
+    if (agent.email === "m.bhuiyan@lcc.ac.uk") {
+      payload.assignStaff = [student.createdBy]; // Copy createdBy ID to assignStaff
+    } else {
+      payload.assignStaff = agent.nominatedStaffs; // Otherwise, use nominatedStaffs
+    }
+
+    // Replace assignStaff with the new agent's nominatedStaffs
+    // payload.assignStaff = agent.nominatedStaffs;
   }
 
   // Toggle `isDeleted` status for the selected user only

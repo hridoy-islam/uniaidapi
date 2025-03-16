@@ -26,7 +26,7 @@ const getAllUserFromDB = async (query: Record<string, unknown>) => {
 };
 
 const getSingleUserFromDB = async (id: string) => {
-  const result = await User.findById(id).populate("agentCourseRelations");
+  const result = await User.findById(id).populate("agentCourseRelations").populate("nominatedStaffs");
   return result;
 };
 
