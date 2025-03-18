@@ -102,6 +102,13 @@ const getSingleStudentFromDB = async (id: string) => {
         path: "term",
         select: "term" 
       }
+    }).populate('accounts.years.sessions').populate({
+      path: "accounts.courseRelationId",
+      populate: [
+        { path: "course", select: "name" },
+        { path: "institute", select: "name" },
+        { path: "term", select: "term" }
+      ]
     });
 
   return result;

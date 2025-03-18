@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document, CallbackError, Types } from "mongoose";
-import {TEmailConfig } from "./email-configs.interface";
+import {TEmail } from "./email.interface";
 
-const emailConfigSchema = new Schema(
+const emailSchema = new Schema(
   {
     email: { type: String, required: true },
     host: { type: String, required: true },
@@ -13,8 +13,8 @@ const emailConfigSchema = new Schema(
 
 // Apply the type at the model level
 
-const emailConfig = mongoose.model<TEmailConfig & Document>(
-  "EmailConfig",
-  emailConfigSchema
+const email = mongoose.model<TEmail>(
+  "Email",
+  emailSchema
 );
-export default emailConfig;
+export default email;

@@ -45,7 +45,7 @@ const getAllNoteFromDB = async (query: Record<string, unknown>) => {
 };
 
 const getSingleNoteFromDB = async (id: string) => {
-  const result = await Note.findById(id).populate("createdBy","name").populate("followUpBy","name").populate("comment.user", "name email");
+  const result = await Note.findById(id).populate("createdBy","name email").populate("followUpBy","name email").populate("comment.user", "name email");
   return result;
 };
 

@@ -11,6 +11,8 @@ import { CourseRelationRoutes } from "../modules/course-relation/courseRelation.
 import { StudentRoutes } from "../modules/student/student.route";
 import { AgentCourseRoutes } from "../modules/agent-course/agentCourse.route";
 import { NoteRoutes } from "../modules/note/note.route";
+import { EmailRoutes } from "../modules/email/email.route";
+import { EmailLogRoutes } from "../modules/email-logs/email-logs.route";
 
 const router = Router();
 
@@ -62,6 +64,14 @@ const moduleRoutes = [
   {
     path: "/notes",
     route: NoteRoutes,
+  },
+  {
+    path: "/email-send",
+    route: EmailRoutes,
+  },
+  {
+    path: "/email-logs",
+    route: EmailLogRoutes,
   },
   
 ];
