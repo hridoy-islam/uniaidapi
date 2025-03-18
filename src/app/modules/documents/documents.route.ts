@@ -2,7 +2,7 @@
 import express from "express";
 import auth from "../../middlewares/auth";
 import { upload } from "../../utils/multer";
-import { EmailControllers } from "./email.controller";
+import { UploadDocumentController } from "./documents.controller";
 // import auth from '../../middlewares/auth';
 
 const router = express.Router();
@@ -10,8 +10,9 @@ const router = express.Router();
 router.post(
   "/",
   // auth("admin", "agent", "staff"),
-  EmailControllers.EmailSend
+  upload.single('file'),
+  UploadDocumentController.UploadDocument
 );
 
 
-export const EmailRoutes = router;
+export const UploadDocumentRoutes = router;

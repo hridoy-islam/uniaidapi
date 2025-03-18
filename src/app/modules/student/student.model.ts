@@ -93,6 +93,7 @@ const StudentSchema = new Schema<TStudent>(
     createdBy: { type: Schema.Types.ObjectId, ref: "User" },
     title: { type: String, required: true },
     firstName: { type: String, required: true },
+    imageUrl:{type: String},
     lastName: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     phone: { type: String, required: true },
@@ -134,7 +135,12 @@ const StudentSchema = new Schema<TStudent>(
     academicHistory: { type: [AcademicHistorySchema], default: [] },
     workDetails: { type: [WorkExperienceSchema], default: [] },
     agent: { type: Schema.Types.ObjectId, ref: "User" },
-    documents: { type: [String], default: [] },
+    documents: { type: [
+      {
+        file_type: { type: String, required: true },
+        fileUrl: { type: String, required: true },
+      }
+    ], default: [] },
     applications: { type: [ApplicationSchema], default: [] },
     assignStaff: [{ type: Schema.Types.ObjectId, ref: "User", default: [] }],
     englishLanguageExam: { type: [EnglishLanguageExamSchema], default: [] },

@@ -23,6 +23,7 @@ export interface TStudent {
   phone: string;
   collageRoll: string ;
   dob: string; 
+  imageUrl: string;
   noDocuments: boolean;
   claimDisabilities: boolean;
   disabilitiesOption: string ;

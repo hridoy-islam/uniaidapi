@@ -13,6 +13,7 @@ import { AgentCourseRoutes } from "../modules/agent-course/agentCourse.route";
 import { NoteRoutes } from "../modules/note/note.route";
 import { EmailRoutes } from "../modules/email/email.route";
 import { EmailLogRoutes } from "../modules/email-logs/email-logs.route";
+import { UploadDocumentRoutes } from "../modules/documents/documents.route";
 
 const router = Router();
 
@@ -72,6 +73,10 @@ const moduleRoutes = [
   {
     path: "/email-logs",
     route: EmailLogRoutes,
+  },
+  {
+    path: "/documents",
+    route:  UploadDocumentRoutes ,
   },
   
 ];

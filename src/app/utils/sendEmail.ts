@@ -2,11 +2,14 @@ import nodemailer from 'nodemailer';
 import ejs from 'ejs';
 import config from '../config';
 
-export const sendEmail = async (to: string, from: string, subject: string, username: string,body:string) => {
+export const sendEmail = async (to: string, from: string, subject: string, username:string,  host:string, port:string,secure:string,body:string) => {
   const transporter = nodemailer.createTransport({
-    host: 'smtp.ionos.co.uk',
-    port: 587,
-    secure: false, 
+    // host: 'smtp.ionos.co.uk',
+    // port: 587,
+    // secure: false, 
+    host,
+    port:Number(port),
+    secure:secure, 
     
     auth: {
       user: 'admin@caretimer.co.uk', 
