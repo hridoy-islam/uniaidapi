@@ -9,19 +9,46 @@ class QueryBuilder<T> {
     this.query = query;
   }
 
+  // search(searchableFields: string[]) {
+  //   const searchTerm = this?.query?.searchTerm;
+  //   if (searchTerm) {
+  //     this.modelQuery = this.modelQuery.find({
+  //       $or: searchableFields.map(
+  //         (field) =>
+  //           ({
+  //             [field]: { $regex: searchTerm, $options: "i" },
+  //           }) as FilterQuery<T>
+  //       ),
+  //     });
+  //   }
+
+  //   return this;
+  // }
+
+
   search(searchableFields: string[]) {
-    const searchTerm = this?.query?.searchTerm;
+    const searchTerm = this?.query?.searchTerm as string;
     if (searchTerm) {
-      this.modelQuery = this.modelQuery.find({
+      const searchTerms = searchTerm.split(' ').filter(term => term.trim() !== ''); // Split into individual terms
+  
+      // Create an array of conditions for each term
+      const searchConditions = searchTerms.map(term => ({
         $or: searchableFields.map(
           (field) =>
             ({
-              [field]: { $regex: searchTerm, $options: "i" },
+              [field]: { $regex: term, $options: "i" }, // Case-insensitive regex for each field
             }) as FilterQuery<T>
         ),
-      });
+      }));
+  
+      // Combine all conditions with $and to ensure all terms are matched
+      if (searchConditions.length > 0) {
+        this.modelQuery = this.modelQuery.find({
+          $and: searchConditions,
+        });
+      }
     }
-
+  
     return this;
   }
 

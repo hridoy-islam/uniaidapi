@@ -14,6 +14,7 @@ import { NoteRoutes } from "../modules/note/note.route";
 import { EmailRoutes } from "../modules/email/email.route";
 import { EmailLogRoutes } from "../modules/email-logs/email-logs.route";
 import { UploadDocumentRoutes } from "../modules/documents/documents.route";
+import { InvoiceRoutes } from "../modules/invoice/invoice.route";
 
 const router = Router();
 
@@ -77,6 +78,10 @@ const moduleRoutes = [
   {
     path: "/documents",
     route:  UploadDocumentRoutes ,
+  },
+  {
+    path: "/invoice",
+    route:  InvoiceRoutes ,
   },
   
 ];

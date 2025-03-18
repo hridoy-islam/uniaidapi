@@ -7,7 +7,9 @@ import {studentSearchableFields } from "./student.constant";
 import { TStudent } from "./student.interface";
 import Student from "./student.model";
 import { User } from "../user/user.model";
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
+import CourseRelation from "../course-relation/courseRelation.model";
+import Term from "../term/term.model";
 
 
 const generateRefId = async (): Promise<string> => {
@@ -45,8 +47,56 @@ const createStudentIntoDB = async (payload: TStudent) => {
 
 const getAllStudentFromDB = async (query: Record<string, unknown>) => {
 
+  const {
+    staffId,
+status,
+institute,
+term,
+academic_year_id,
+    ...otherQueryParams
+  } = query;
 
-  const StudentQuery = new QueryBuilder(Student.find(), query)
+  
+
+  // Preprocess the query parameters
+  const processedQuery: Record<string, unknown> = { ...otherQueryParams };
+
+ if (staffId) {
+    processedQuery['assignStaff'] = staffId;
+  }
+    
+  if (status) {
+    processedQuery["applications.status"] = { $regex: status, $options: "i" };
+  }
+
+
+  if (institute) {
+    // Match the institute ID in the referenced `courseRelation.institute` field
+    processedQuery['applications.courseRelationId'] = {
+      $in: await CourseRelation.find({ institute }).distinct('_id'),
+    };
+  }
+
+  if (term) {
+    processedQuery['applications.courseRelationId'] = {
+      $in: await CourseRelation.find({ term }).distinct('_id'),
+    };
+  }
+
+  if (academic_year_id) {
+    // Find all `term` documents with the matching academic_year_id
+    const termIds = await Term.find({ academic_year_id }).distinct('_id');
+  
+    // Find all `courseRelation` documents that reference these term IDs
+    const courseRelationIds = await CourseRelation.find({ term: { $in: termIds } }).distinct('_id');
+  
+    // Match the `courseRelationId` in the `applications` array to the `courseRelation` IDs
+    processedQuery['applications.courseRelationId'] = {
+      $in: courseRelationIds,
+    };
+  }
+
+  const StudentQuery = new QueryBuilder(Student.find(), processedQuery)
     .search(studentSearchableFields)
     .filter()
     .sort()
