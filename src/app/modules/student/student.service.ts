@@ -97,27 +97,39 @@ const getAllStudentFromDB = async (query: Record<string, unknown>) => {
   }
 
   if (applicationCourse || year || session || paymentStatus) {
-    // Construct the query for the `accounts` array
     const accountsQuery: Record<string, unknown> = {};
-
+  
     if (applicationCourse) {
-      accountsQuery['accounts.courseRelationId._id'] = applicationCourse; // Match courseRelationId in accounts
+      accountsQuery['courseRelationId'] = applicationCourse; // Match courseRelationId directly
     }
-
-    if (year) {
-      accountsQuery['accounts.years.year'] = year; // Match year in accounts
+  
+    if (year || session || paymentStatus) {
+      const yearsQuery: Record<string, unknown> = {};
+  
+      if (year) {
+        yearsQuery['year'] = year; // Match year inside years array
+      }
+  
+      if (session || paymentStatus) {
+        const sessionsQuery: Record<string, unknown> = {};
+  
+        if (session) {
+          sessionsQuery['sessionName'] = session; // Match session inside sessions array
+        }
+  
+        if (paymentStatus) {
+          sessionsQuery['status'] = paymentStatus; // Match payment status inside sessions array
+        }
+  
+        yearsQuery['sessions'] = { $elemMatch: sessionsQuery }; // Ensure at least one matching session
+      }
+  
+      accountsQuery['years'] = { $elemMatch: yearsQuery }; // Ensure at least one matching year
     }
-
-    if (session) {
-      accountsQuery['accounts.years.sessions.sessionName'] = session; // Match session in accounts
-    }
-
-    if (paymentStatus) {
-      accountsQuery['accounts.years.sessions.status'] = paymentStatus; // Match payment status in accounts
-    }
-
-    // Add the accounts query to the processedQuery
-    processedQuery['$and'] = (processedQuery['$and'] || []).concat([{ accounts: { $elemMatch: accountsQuery } }]);
+  
+    processedQuery['$and'] = (processedQuery['$and'] || []).concat([
+      { accounts: { $elemMatch: accountsQuery } },
+    ]);
   }
 
   const StudentQuery = new QueryBuilder(
