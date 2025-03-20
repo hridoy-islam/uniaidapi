@@ -46,29 +46,29 @@ const createStudentIntoDB = async (payload: TStudent) => {
 
 
 const getAllStudentFromDB = async (query: Record<string, unknown>) => {
-
   const {
     staffId,
-status,
-institute,
-term,
-academic_year_id,
+    status,
+    institute,
+    term,
+    academic_year_id,
+    applicationCourse,
+    year,
+    session,
+    paymentStatus,
     ...otherQueryParams
   } = query;
-
-  
 
   // Preprocess the query parameters
   const processedQuery: Record<string, unknown> = { ...otherQueryParams };
 
- if (staffId) {
+  if (staffId) {
     processedQuery['assignStaff'] = staffId;
   }
-    
-  if (status) {
-    processedQuery["applications.status"] = { $regex: status, $options: "i" };
-  }
 
+  if (status) {
+    processedQuery['applications.status'] = { $regex: status, $options: 'i' };
+  }
 
   if (institute) {
     // Match the institute ID in the referenced `courseRelation.institute` field
@@ -86,17 +86,60 @@ academic_year_id,
   if (academic_year_id) {
     // Find all `term` documents with the matching academic_year_id
     const termIds = await Term.find({ academic_year_id }).distinct('_id');
-  
+
     // Find all `courseRelation` documents that reference these term IDs
     const courseRelationIds = await CourseRelation.find({ term: { $in: termIds } }).distinct('_id');
-  
+
     // Match the `courseRelationId` in the `applications` array to the `courseRelation` IDs
     processedQuery['applications.courseRelationId'] = {
       $in: courseRelationIds,
     };
   }
 
-  const StudentQuery = new QueryBuilder(Student.find(), processedQuery)
+  if (applicationCourse || year || session || paymentStatus) {
+    // Construct the query for the `accounts` array
+    const accountsQuery: Record<string, unknown> = {};
+
+    if (applicationCourse) {
+      accountsQuery['accounts.courseRelationId._id'] = applicationCourse; // Match courseRelationId in accounts
+    }
+
+    if (year) {
+      accountsQuery['accounts.years.year'] = year; // Match year in accounts
+    }
+
+    if (session) {
+      accountsQuery['accounts.years.sessions.sessionName'] = session; // Match session in accounts
+    }
+
+    if (paymentStatus) {
+      accountsQuery['accounts.years.sessions.status'] = paymentStatus; // Match payment status in accounts
+    }
+
+    // Add the accounts query to the processedQuery
+    processedQuery['$and'] = (processedQuery['$and'] || []).concat([{ accounts: { $elemMatch: accountsQuery } }]);
+  }
+
+  const StudentQuery = new QueryBuilder(
+    Student.find().populate({
+      path: 'accounts.courseRelationId',
+      populate: [
+        {
+          path: 'institute',
+          select: 'name _id',
+        },
+        {
+          path: 'course',
+          select: 'name _id',
+        },
+        {
+          path: 'term',
+          select: 'term academic_year_id _id',
+        },
+      ],
+    }),
+    processedQuery
+  )
     .search(studentSearchableFields)
     .filter()
     .sort()

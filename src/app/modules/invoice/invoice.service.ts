@@ -10,20 +10,43 @@ import { TInvoice } from "./invoice.interface";
 
 const createInvoiceIntoDB = async (payload: TInvoice) => {
   try {
-    
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const date = String(now.getDate()).padStart(2, "0");
+    const currentDate = `${year}-${month}-${date}`;
+
+    // Find the latest invoice of the day
+    const lastInvoice = await Invoice.findOne({ reference: { $regex: `^${currentDate}-` } })
+      .sort({ reference: -1 }) 
+      .lean(); 
+
+    let newInvoiceNumber = 1; 
+
+    if (lastInvoice && lastInvoice.reference) {
+      const lastNumber = parseInt(lastInvoice.reference.split("-").pop() || "0", 10);
+      newInvoiceNumber = lastNumber + 1;
+    }
+
+    const formattedInvoiceNumber = String(newInvoiceNumber).padStart(4, "0");
+    const generatedReference = `${currentDate}-${formattedInvoiceNumber}`;
+
+    // Attach generated reference to payload
+    payload.reference = generatedReference;
+
+    // Create the invoice
     const result = await Invoice.create(payload);
     return result;
   } catch (error: any) {
     console.error("Error in createInvoiceIntoDB:", error);
-
-    // Throw the original error or wrap it with additional context
     if (error instanceof AppError) {
       throw error;
     }
-
-    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, error.message || "Failed to create Category");
+    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, error.message || "Failed to create Invoice");
   }
 };
+
 
 
 const getAllInvoiceFromDB = async (query: Record<string, unknown>) => {

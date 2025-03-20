@@ -1,38 +1,44 @@
-import mongoose, { Schema, Document, CallbackError, Types } from "mongoose";
+import mongoose, { Schema, Document, Types } from "mongoose";
 import { TInvoice } from "./invoice.interface";
+import CourseRelation from "../course-relation/courseRelation.model";
 
-const InvoiceSchema = new Schema(
+const invoiceSchema = new Schema(
   {
-    reference: { type: String, required: true, unique: true },
-    date: { type: Date, required: true },
-    semester: { type: String, required: true },
-    noOfStudents: { type: Number, required: true },
-    Logo: { type: String, required: true },
+    reference: { type: String,},
+    date: { type: Date},
+    noOfStudents: { type: Number },
+    Logo: { type: String},
     remitTo: {
-      name: { type: String, required: true },
-      email: { type: String, required: true },
-      address: { type: String, required: true },
+      name: { type: String},
+      email: { type: String },
+      address: { type: String },
     },
     paymentInfo: {
       sortCode: { type: String, required: true },
       accountNo: { type: String, required: true },
-      beneficiary: { type: String, required: true },
+      beneficiary: { type: String },
     },
-    students: [
-      {
-        collageroll: { type: Number, required: true },
-        refId: { type: String, required: true },
-        name: { type: String, required: true },
-        course: { type: String, required: true },
-        amount: { type: Number, required: true },
-      },
-    ],
+    // students: [
+    //   {
+        
+    //     collageroll: { type: Number, required: true },
+    //     refId: { type: String, required: true },
+    //     name: { type: String, required: true },
+    //     course: { type: String, required: true },
+    //     amount: { type: Number, required: true },
+    //   },
+    // ],
+
+    students: [{ type: Types.ObjectId, ref: "Student" }],
     totalAmount: { type: Number, required: true },
-    Status: { type: String, enum: ["due", "paid"], required: true },
-    createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    courseRelationId: { type: Schema.Types.ObjectId, ref: "CourseRelation", required: true },
-    Year: { type: String, required: true },
-    Session: { type: String, required: true },
+    Status: { type: String, enum: ["due", "paid"], required: true, default: "due" },
+    createdBy: { type: Types.ObjectId, required: true },
+    courseRelationId: { type: Types.ObjectId, ref: "CourseRelation", required: true },
+    Year: { type: String },
+    Session: { type: String },
+    semester: { type: String },
+    course:{type: String},
+    Exported:{type: Boolean, default: false}
   },
   {
     timestamps: true, 
@@ -40,8 +46,7 @@ const InvoiceSchema = new Schema(
 );
 
 
-const Invoice = mongoose.model<TInvoice & Document>(
-  "Invoice",
-  InvoiceSchema
-);
+
+const Invoice = mongoose.model<TInvoice & Document>("Invoice", invoiceSchema);
+
 export default Invoice;

@@ -1,11 +1,11 @@
 import { Types } from "mongoose";
 
 export interface TInvoice {
-  reference: string; 
+  reference: string;
   date: Date;
-  semester: string; 
+
   noOfStudents: number;
-  Logo: string;
+  logo: string;
   remitTo: {
     name: string;
     email: string;
@@ -16,18 +16,23 @@ export interface TInvoice {
     accountNo: string;
     beneficiary: string;
   };
-  students: {
-    collageroll: number;
-    refId: string;
-    name: string;
-    course: string;
-    amount: number;
-  }[];
+  // students: {
+  //   collageroll: number;
+  //   refId: string;
+  //   name: string;
+  //   course: string;
+  //   amount: number;
+  // }[];
+
+  studens: Types.ObjectId[];
   totalAmount: number;
-  Status: "due" | "paid"; 
-  createdBy: Types.ObjectId; 
+  status: "due" | "paid";
+  createdBy: Types.ObjectId;
   courseRelationId: Types.ObjectId; 
-  Year: string; 
-  Session: string; 
+  year: string;
+  session: string;
+  semester: string;
+  course: string;
+  Exported:boolean
 }
 

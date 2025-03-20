@@ -8,7 +8,7 @@ import { CourseRelationControllers } from "./courseRelation.controller";
 const router = express.Router();
 router.get(
   "/",
-  auth("admin", "agent", "staff"),
+  // auth("admin", "agent", "staff"),
   CourseRelationControllers.getAllCourseRelation
 );
 router.post(
