@@ -7,7 +7,7 @@ const invoiceSchema = new Schema(
     reference: { type: String,},
     date: { type: Date},
     noOfStudents: { type: Number },
-    Logo: { type: String},
+    logo: { type: String},
     remitTo: {
       name: { type: String},
       email: { type: String },
@@ -18,27 +18,17 @@ const invoiceSchema = new Schema(
       accountNo: { type: String, required: true },
       beneficiary: { type: String },
     },
-    // students: [
-    //   {
-        
-    //     collageroll: { type: Number, required: true },
-    //     refId: { type: String, required: true },
-    //     name: { type: String, required: true },
-    //     course: { type: String, required: true },
-    //     amount: { type: Number, required: true },
-    //   },
-    // ],
 
     students: [{ type: Types.ObjectId, ref: "Student" }],
     totalAmount: { type: Number, required: true },
-    Status: { type: String, enum: ["due", "paid"], required: true, default: "due" },
+    status: { type: String, enum: ["due", "paid"], required: true, default: "due" },
     createdBy: { type: Types.ObjectId, required: true },
     courseRelationId: { type: Types.ObjectId, ref: "CourseRelation", required: true },
-    Year: { type: String },
-    Session: { type: String },
+    year: { type: String },
+    session: { type: String },
     semester: { type: String },
     course:{type: String},
-    Exported:{type: Boolean, default: false}
+    exported:{type: Boolean, default: false}
   },
   {
     timestamps: true, 

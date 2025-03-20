@@ -15,22 +15,22 @@ const createInvoiceIntoDB = async (payload: TInvoice) => {
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, "0");
     const date = String(now.getDate()).padStart(2, "0");
-    const currentDate = `${year}-${month}-${date}`;
-
+    const currentDate = `${year}${month}${date}`; // Removed '-'
+    
     // Find the latest invoice of the day
-    const lastInvoice = await Invoice.findOne({ reference: { $regex: `^${currentDate}-` } })
+    const lastInvoice = await Invoice.findOne({ reference: { $regex: `^${currentDate}` } })
       .sort({ reference: -1 }) 
       .lean(); 
-
-    let newInvoiceNumber = 1; 
-
+    
+    let newInvoiceNumber = 1;
+    
     if (lastInvoice && lastInvoice.reference) {
-      const lastNumber = parseInt(lastInvoice.reference.split("-").pop() || "0", 10);
+      const lastNumber = parseInt(lastInvoice.reference.slice(currentDate.length) || "0", 10);
       newInvoiceNumber = lastNumber + 1;
     }
-
+    
     const formattedInvoiceNumber = String(newInvoiceNumber).padStart(4, "0");
-    const generatedReference = `${currentDate}-${formattedInvoiceNumber}`;
+    const generatedReference = `${currentDate}${formattedInvoiceNumber}`;
 
     // Attach generated reference to payload
     payload.reference = generatedReference;
@@ -67,7 +67,16 @@ const getAllInvoiceFromDB = async (query: Record<string, unknown>) => {
 };
 
 const getSingleInvoiceFromDB = async (id: string) => {
-  const result = await Invoice.findById(id);
+  const result = await Invoice.findById(id)
+    .populate({
+      path: "courseRelationId",
+      populate: [
+        { path: "course", select: "name" },
+        { path: "institute", select: "name" },
+        { path: "term", select: "term" },
+      ],
+    });
+
   return result;
 };
 

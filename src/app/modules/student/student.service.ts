@@ -33,14 +33,15 @@ const createStudentIntoDB = async (payload: TStudent) => {
     const result = await Student.create(payload);
     return result;
   } catch (error: any) {
-    console.error("Error in createStudentIntoDB:", error);
-
+    if (error.code === 11000) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Duplicate Error: Email already exists");
+    }
     // Throw the original error or wrap it with additional context
     if (error instanceof AppError) {
       throw error;
     }
 
-    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, error.message || "Failed to create Category");
+    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, error.message || "Failed to create Student");
   }
 };
 
@@ -54,6 +55,7 @@ const getAllStudentFromDB = async (query: Record<string, unknown>) => {
     academic_year_id,
     applicationCourse,
     year,
+    createdBy,
     session,
     paymentStatus,
     ...otherQueryParams
@@ -62,9 +64,17 @@ const getAllStudentFromDB = async (query: Record<string, unknown>) => {
   // Preprocess the query parameters
   const processedQuery: Record<string, unknown> = { ...otherQueryParams };
 
-  if (staffId) {
-    processedQuery['assignStaff'] = staffId;
+  // if (staffId) {
+  //   processedQuery['assignStaff'] = staffId;
+  // }
+
+
+  if (staffId || createdBy) {
+    processedQuery['$or'] = [];
+    if (staffId) processedQuery['$or'].push({ assignStaff: staffId });
+    if (createdBy) processedQuery['$or'].push({ createdBy });
   }
+
 
   if (status) {
     processedQuery['applications.status'] = { $regex: status, $options: 'i' };

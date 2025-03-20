@@ -18,7 +18,7 @@ router.post(
 );
 router.get(
   "/:id",
-  auth("admin", "agent", "staff"),
+  // auth("admin", "agent", "staff"),
   InvoiceControllers.getSingleInvoice
 );
 

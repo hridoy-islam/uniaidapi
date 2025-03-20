@@ -17,17 +17,15 @@ const checkLogin = async (payload: TLogin) => {
   try {
     const foundUser = await User.isUserExists(payload.email);
     if (!foundUser) {
-      throw new AppError(httpStatus.NOT_FOUND, "Login Detials is not correct");
+      throw new AppError(httpStatus.NOT_FOUND, "Login Details are not correct");
     }
     if (foundUser.isDeleted) {
-      throw new AppError(
-        httpStatus.NOT_FOUND,
-        "This Account Has Been Deleted."
-      );
+      throw new AppError(httpStatus.NOT_FOUND, "This Account Has Been Deleted.");
     }
 
-    if (!(await User.isPasswordMatched(payload?.password, foundUser?.password)))
-      throw new AppError(httpStatus.FORBIDDEN, "Password do not matched");
+    if (!(await User.isPasswordMatched(payload?.password, foundUser?.password))) {
+      throw new AppError(httpStatus.FORBIDDEN, "Password does not match");
+    }
 
     const accessToken = jwt.sign(
       {
@@ -50,20 +48,31 @@ const checkLogin = async (payload: TLogin) => {
         role: foundUser?.role,
       },
       `${config.jwt_refresh_secret}`,
-       {
+      {
         expiresIn: "4 days", // Refresh Token expires in 7 days
       }
     );
+
+    // Update the user's refresh token in the database
     await User.updateOne({ _id: foundUser._id }, { refreshToken });
-    return {
+    const privileges = foundUser.privileges || null;
+    // Prepare the response object
+    const response: {
+      accessToken: string;
+      refreshToken: string;
+      privileges?: any; // Replace `any` with the actual type of privileges
+    } = {
       accessToken,
       refreshToken,
+      privileges
     };
+
+
+    return response;
   } catch (error) {
-    throw new AppError(httpStatus.NOT_FOUND, "Details doesnt match");
+    throw new AppError(httpStatus.NOT_FOUND, "Details don't match");
   }
 };
-
 
 
 const refreshToken = async (token: string) => {

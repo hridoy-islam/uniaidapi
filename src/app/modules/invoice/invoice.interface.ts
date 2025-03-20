@@ -33,6 +33,6 @@ export interface TInvoice {
   session: string;
   semester: string;
   course: string;
-  Exported:boolean
+  exported:boolean
 }
 

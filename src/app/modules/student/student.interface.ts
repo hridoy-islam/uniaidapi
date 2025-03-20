@@ -22,7 +22,7 @@ export interface TStudent {
   email: string;
   phone: string;
   collageRoll: string ;
-  dob: string; 
+  dob: Date; 
   imageUrl: string;
   noDocuments: boolean;
   claimDisabilities: boolean;
