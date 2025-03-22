@@ -1,6 +1,5 @@
 import mongoose, { Schema, Document } from "mongoose";
 import { TStudent } from "./student.interface";
-import { User } from "../user/user.model";
 
 // Define the Session Schema
 const SessionSchema = new Schema({
@@ -12,14 +11,17 @@ const SessionSchema = new Schema({
 
 // Define the Year Schema (Referencing CourseRelation)
 const YearSchema = new Schema({
-  
   year: { type: String, required: true },
   sessions: { type: [SessionSchema], default: [] },
 });
 
 // Define the Account Schema (Referencing Year)
 const AccountSchema = new Schema({
-  courseRelationId: { type: Schema.Types.ObjectId, ref: "CourseRelation", required: true },
+  courseRelationId: {
+    type: Schema.Types.ObjectId,
+    ref: "CourseRelation",
+    required: true,
+  },
   years: { type: [YearSchema], default: [] },
 });
 
@@ -93,7 +95,7 @@ const StudentSchema = new Schema<TStudent>(
     createdBy: { type: Schema.Types.ObjectId, ref: "User" },
     title: { type: String, required: true },
     firstName: { type: String, required: true },
-    imageUrl:{type: String},
+    imageUrl: { type: String },
     lastName: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     phone: { type: String, required: true },
@@ -135,12 +137,15 @@ const StudentSchema = new Schema<TStudent>(
     academicHistory: { type: [AcademicHistorySchema], default: [] },
     workDetails: { type: [WorkExperienceSchema], default: [] },
     agent: { type: Schema.Types.ObjectId, ref: "User" },
-    documents: { type: [
-      {
-        file_type: { type: String, required: true },
-        fileUrl: { type: String, required: true },
-      }
-    ], default: [] },
+    documents: {
+      type: [
+        {
+          file_type: { type: String, required: true },
+          fileUrl: { type: String, required: true },
+        },
+      ],
+      default: [],
+    },
     applications: { type: [ApplicationSchema], default: [] },
     assignStaff: [{ type: Schema.Types.ObjectId, ref: "User", default: [] }],
     englishLanguageExam: { type: [EnglishLanguageExamSchema], default: [] },
@@ -155,15 +160,17 @@ const StudentSchema = new Schema<TStudent>(
 StudentSchema.pre<TStudent>("save", async function (next) {
   if (this.isNew) {
     // Fetch the CourseRelation document based on courseRelationId
-    const courseRelation = await mongoose.model("CourseRelation").findById(this.courseRelationId);
+    const courseRelation = await mongoose
+      .model("CourseRelation")
+      .findById(this.courseRelationId);
 
     if (courseRelation) {
       // Populate the accounts field with data from CourseRelation
-      this.accounts = courseRelation.accounts.map(account => ({
+      this.accounts = courseRelation.accounts.map((account) => ({
         ...account.toObject(),
-        years: account.years.map(year => ({
+        years: account.years.map((year) => ({
           ...year.toObject(),
-          sessions: year.sessions.map(session => ({
+          sessions: year.sessions.map((session) => ({
             ...session.toObject(),
             status: "due", // Set session status to "due"
           })),

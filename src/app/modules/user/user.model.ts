@@ -150,8 +150,6 @@ const userSchema = new Schema(
   }
 );
 
-export const UserModel = model("TUser", userSchema);
-
 // Middleware to hash the password before saving
 userSchema.pre("save", async function (next) {
   const user = this; // doc

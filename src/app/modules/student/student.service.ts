@@ -3,7 +3,7 @@ import QueryBuilder from "../../builder/QueryBuilder";
 
 import AppError from "../../errors/AppError";
 
-import {studentSearchableFields } from "./student.constant";
+import { studentSearchableFields } from "./student.constant";
 import { TStudent } from "./student.interface";
 import Student from "./student.model";
 import { User } from "../user/user.model";
@@ -17,21 +17,26 @@ const generateRefId = async (): Promise<string> => {
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const date = String(now.getDate()).padStart(2, "0");
-  const currentDate = `STD${year}${month}${date}`; 
+  const currentDate = `STD${year}${month}${date}`;
 
-  const lastStudent = await Student.findOne({ refId: { $regex: `^${currentDate}` } })
+  const lastStudent = await Student.findOne({
+    refId: { $regex: `^${currentDate}` },
+  })
     .sort({ refId: -1 }) // Sort in descending order to get the latest refId
     .lean();
 
-  let newRefNumber = 1; 
+  let newRefNumber = 1;
   if (lastStudent && lastStudent.refId) {
     // Extract the numeric part of the refId and increment it
-    const lastNumber = parseInt(lastStudent.refId.slice(currentDate.length) || "0", 10);
+    const lastNumber = parseInt(
+      lastStudent.refId.slice(currentDate.length) || "0",
+      10
+    );
     newRefNumber = lastNumber + 1;
   }
 
-  const formattedRefNumber = String(newRefNumber).padStart(4, "0"); 
-  const generatedRefId = `${currentDate}${formattedRefNumber}`; 
+  const formattedRefNumber = String(newRefNumber).padStart(4, "0");
+  const generatedRefId = `${currentDate}${formattedRefNumber}`;
 
   return generatedRefId;
 };
@@ -43,17 +48,22 @@ const createStudentIntoDB = async (payload: TStudent) => {
     return result;
   } catch (error: any) {
     if (error.code === 11000) {
-      throw new AppError(httpStatus.BAD_REQUEST, "Duplicate Error: Email already exists");
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Duplicate Error: Email already exists"
+      );
     }
     // Throw the original error or wrap it with additional context
     if (error instanceof AppError) {
       throw error;
     }
 
-    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, error.message || "Failed to create Student");
+    throw new AppError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      error.message || "Failed to create Student"
+    );
   }
 };
-
 
 const getAllStudentFromDB = async (query: Record<string, unknown>) => {
   const {
@@ -77,95 +87,95 @@ const getAllStudentFromDB = async (query: Record<string, unknown>) => {
   //   processedQuery['assignStaff'] = staffId;
   // }
 
-
   if (staffId || createdBy) {
-    processedQuery['$or'] = [];
-    if (staffId) processedQuery['$or'].push({ assignStaff: staffId });
-    if (createdBy) processedQuery['$or'].push({ createdBy });
+    processedQuery["$or"] = [];
+    if (staffId) processedQuery["$or"].push({ assignStaff: staffId });
+    if (createdBy) processedQuery["$or"].push({ createdBy });
   }
 
-
   if (status) {
-    processedQuery['applications.status'] = { $regex: status, $options: 'i' };
+    processedQuery["applications.status"] = { $regex: status, $options: "i" };
   }
 
   if (institute) {
     // Match the institute ID in the referenced `courseRelation.institute` field
-    processedQuery['applications.courseRelationId'] = {
-      $in: await CourseRelation.find({ institute }).distinct('_id'),
+    processedQuery["applications.courseRelationId"] = {
+      $in: await CourseRelation.find({ institute }).distinct("_id"),
     };
   }
 
   if (term) {
-    processedQuery['applications.courseRelationId'] = {
-      $in: await CourseRelation.find({ term }).distinct('_id'),
+    processedQuery["applications.courseRelationId"] = {
+      $in: await CourseRelation.find({ term }).distinct("_id"),
     };
   }
 
   if (academic_year_id) {
     // Find all `term` documents with the matching academic_year_id
-    const termIds = await Term.find({ academic_year_id }).distinct('_id');
+    const termIds = await Term.find({ academic_year_id }).distinct("_id");
 
     // Find all `courseRelation` documents that reference these term IDs
-    const courseRelationIds = await CourseRelation.find({ term: { $in: termIds } }).distinct('_id');
+    const courseRelationIds = await CourseRelation.find({
+      term: { $in: termIds },
+    }).distinct("_id");
 
     // Match the `courseRelationId` in the `applications` array to the `courseRelation` IDs
-    processedQuery['applications.courseRelationId'] = {
+    processedQuery["applications.courseRelationId"] = {
       $in: courseRelationIds,
     };
   }
 
   if (applicationCourse || year || session || paymentStatus) {
     const accountsQuery: Record<string, unknown> = {};
-  
+
     if (applicationCourse) {
-      accountsQuery['courseRelationId'] = applicationCourse; // Match courseRelationId directly
+      accountsQuery["courseRelationId"] = applicationCourse; // Match courseRelationId directly
     }
-  
+
     if (year || session || paymentStatus) {
       const yearsQuery: Record<string, unknown> = {};
-  
+
       if (year) {
-        yearsQuery['year'] = year; // Match year inside years array
+        yearsQuery["year"] = year; // Match year inside years array
       }
-  
+
       if (session || paymentStatus) {
         const sessionsQuery: Record<string, unknown> = {};
-  
+
         if (session) {
-          sessionsQuery['sessionName'] = session; // Match session inside sessions array
+          sessionsQuery["sessionName"] = session; // Match session inside sessions array
         }
-  
+
         if (paymentStatus) {
-          sessionsQuery['status'] = paymentStatus; // Match payment status inside sessions array
+          sessionsQuery["status"] = paymentStatus; // Match payment status inside sessions array
         }
-  
-        yearsQuery['sessions'] = { $elemMatch: sessionsQuery }; // Ensure at least one matching session
+
+        yearsQuery["sessions"] = { $elemMatch: sessionsQuery }; // Ensure at least one matching session
       }
-  
-      accountsQuery['years'] = { $elemMatch: yearsQuery }; // Ensure at least one matching year
+
+      accountsQuery["years"] = { $elemMatch: yearsQuery }; // Ensure at least one matching year
     }
-  
-    processedQuery['$and'] = (processedQuery['$and'] || []).concat([
+
+    processedQuery["$and"] = (processedQuery["$and"] || []).concat([
       { accounts: { $elemMatch: accountsQuery } },
     ]);
   }
 
   const StudentQuery = new QueryBuilder(
     Student.find().populate({
-      path: 'accounts.courseRelationId',
+      path: "accounts.courseRelationId",
       populate: [
         {
-          path: 'institute',
-          select: 'name _id',
+          path: "institute",
+          select: "name _id",
         },
         {
-          path: 'course',
-          select: 'name _id',
+          path: "course",
+          select: "name _id",
         },
         {
-          path: 'term',
-          select: 'term academic_year_id _id',
+          path: "term",
+          select: "term academic_year_id _id",
         },
       ],
     }),
@@ -195,49 +205,50 @@ const getSingleStudentFromDB = async (id: string) => {
       select: "changed_to assigned_by changed_by assigned_at created_at",
       populate: {
         path: "assigned_by",
-        select: "name", 
-      }
+        select: "name",
+      },
     })
     .populate({
       path: "applications.statusLogs",
       populate: {
-        path: "changed_by", 
-        select: "name", 
-      }
+        path: "changed_by",
+        select: "name",
+      },
     })
     .populate({
       path: "applications.courseRelationId",
-      select: "institute course term", 
+      select: "institute course term",
       populate: {
-        path: "institute", 
-        select: "name" 
-      }
+        path: "institute",
+        select: "name",
+      },
     })
     .populate({
       path: "applications.courseRelationId",
       populate: {
-        path: "course", 
-        select: "name" 
-      }
+        path: "course",
+        select: "name",
+      },
     })
     .populate({
       path: "applications.courseRelationId",
       populate: {
         path: "term",
-        select: "term" 
-      }
-    }).populate('accounts.years.sessions').populate({
+        select: "term",
+      },
+    })
+    .populate("accounts.years.sessions")
+    .populate({
       path: "accounts.courseRelationId",
       populate: [
         { path: "course", select: "name" },
         { path: "institute", select: "name" },
-        { path: "term", select: "term" }
-      ]
+        { path: "term", select: "term" },
+      ],
     });
 
   return result;
 };
-
 
 const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
   const student = await Student.findById(id);
@@ -250,7 +261,6 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
     if (!agent) {
       throw new AppError(httpStatus.NOT_FOUND, "Agent not found");
     }
-
 
     if (agent.email === "m.bhuiyan@lcc.ac.uk") {
       payload.assignStaff = [student.createdBy]; // Copy createdBy ID to assignStaff
@@ -279,16 +289,9 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
   return result;
 };
 
-
-
-
-
-
 export const StudentServices = {
   getAllStudentFromDB,
   getSingleStudentFromDB,
   updateStudentIntoDB,
-  createStudentIntoDB
-  
-
+  createStudentIntoDB,
 };
