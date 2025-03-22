@@ -1,2 +1,2 @@
 
-export const InvoiceSearchableFields = ["name"];
+export const InvoiceSearchableFields = ["reference"];

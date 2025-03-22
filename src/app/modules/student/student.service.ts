@@ -11,21 +11,30 @@ import mongoose, { Types } from "mongoose";
 import CourseRelation from "../course-relation/courseRelation.model";
 import Term from "../term/term.model";
 
-
 const generateRefId = async (): Promise<string> => {
-  // Get the last created student sorted by refId in descending order
-  const lastStudent = await Student.findOne().sort({ refId: -1 });
+  // Get the current date in YYYYMMDD format
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const date = String(now.getDate()).padStart(2, "0");
+  const currentDate = `STD${year}${month}${date}`; 
 
-  let newRefId = "STD00001"; // Default for first entry
+  const lastStudent = await Student.findOne({ refId: { $regex: `^${currentDate}` } })
+    .sort({ refId: -1 }) // Sort in descending order to get the latest refId
+    .lean();
 
+  let newRefNumber = 1; 
   if (lastStudent && lastStudent.refId) {
-    const lastRefNumber = parseInt(lastStudent.refId.replace("STD", ""), 10) || 0;
-    newRefId = `STD${String(lastRefNumber + 1).padStart(5, "0")}`;
+    // Extract the numeric part of the refId and increment it
+    const lastNumber = parseInt(lastStudent.refId.slice(currentDate.length) || "0", 10);
+    newRefNumber = lastNumber + 1;
   }
 
-  return newRefId;
-};
+  const formattedRefNumber = String(newRefNumber).padStart(4, "0"); 
+  const generatedRefId = `${currentDate}${formattedRefNumber}`; 
 
+  return generatedRefId;
+};
 
 const createStudentIntoDB = async (payload: TStudent) => {
   try {

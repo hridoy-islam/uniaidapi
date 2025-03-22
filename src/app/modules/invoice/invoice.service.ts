@@ -5,8 +5,47 @@ import AppError from "../../errors/AppError";
 import Invoice from "./invoice.model";
 import { InvoiceSearchableFields } from "./invoice.constant";
 import { TInvoice } from "./invoice.interface";
+import Student from "../student/student.model";
+import moment from "moment";
 
+// const updateStudentAccounts = async (
+//   students,
+//   courseRelationId,
+//   year,
+//   session,
+//   status
+// ) => {
+//   try {
+//     if (!students.length) return;
 
+//     const studentRefIds = students.map((student) => student.refId);
+
+//     const result = await Student.updateMany(
+//       {
+//         refId: { $in: studentRefIds }, // Match students by refId
+//         "accounts.courseRelationId": courseRelationId, // Match the courseRelationId inside accounts array
+//         "accounts.years.year": year, // Match the correct year
+//         "accounts.years.sessions.sessionName": session, // Match the correct session
+//       },
+//       {
+//         $set: {
+//           "accounts.$[account].years.$[year].sessions.$[session].status": status, // Update status inside sessions array
+//         },
+//       },
+//       {
+//         arrayFilters: [
+//           { "account.courseRelationId": courseRelationId }, // Ensure the correct account
+//           { "years.year": year }, // Ensure the correct year
+//           { "session.sessionName": session }, // Ensure the correct session
+//         ],
+//       }
+//     );
+
+//     console.log(`${result.modifiedCount} student accounts updated to ${status}`);
+//   } catch (error) {
+//     console.error("Error updating student account payment status:", error);
+//   }
+// };
 
 const createInvoiceIntoDB = async (payload: TInvoice) => {
   try {
@@ -50,7 +89,33 @@ const createInvoiceIntoDB = async (payload: TInvoice) => {
 
 
 const getAllInvoiceFromDB = async (query: Record<string, unknown>) => {
-  const userQuery = new QueryBuilder(Invoice.find(), query)
+
+  const {
+   
+    fromDate,
+    toDate,
+    ...otherQueryParams
+  } = query;
+
+  const processedQuery: Record<string, unknown> = { ...otherQueryParams };
+
+
+  if (fromDate && toDate) {
+    processedQuery['createdAt'] = {
+      $gte: moment(fromDate).startOf('day').toDate(),  // Start of the day for fromDate
+      $lte: moment(toDate).endOf('day').toDate(),      // End of the day for toDate
+    };
+  } else if (fromDate) {
+    processedQuery['createdAt'] = {
+      $gte: moment(fromDate).startOf('day').toDate(),  // Start of the day for fromDate
+    };
+  } else if (toDate) {
+    processedQuery['createdAt'] = {
+      $lte: moment(toDate).endOf('day').toDate(),      // End of the day for toDate
+    };
+  }
+
+  const userQuery = new QueryBuilder(Invoice.find().populate("remit"), processedQuery)
     .search(InvoiceSearchableFields)
     .filter()
     .sort()
@@ -75,7 +140,7 @@ const getSingleInvoiceFromDB = async (id: string) => {
         { path: "institute", select: "name" },
         { path: "term", select: "term" },
       ],
-    });
+    }).populate("students", "refId	firstName lastName collageRoll").populate("remit");
 
   return result;
 };
@@ -87,19 +152,52 @@ const updateInvoiceIntoDB = async (id: string, payload: Partial<TInvoice>) => {
     throw new AppError(httpStatus.NOT_FOUND, "Invoice not found");
   }
 
-  // Toggle `isDeleted` status for the selected user only
-  // const newStatus = !user.isDeleted;
+  // Update the invoice status
 
-  // // Check if the user is a company, but only update the selected user
-  // if (user.role === "company") {
-  //   payload.isDeleted = newStatus;
-  // }
+  if (payload.status === "paid" && invoice.status !== "paid") {
+    // Directly update student accounts when invoice status is changed to "paid"
+    if (invoice.students && invoice.students.length > 0) {
+      const studentRefIds = invoice.students.map((student) => student.refId);
 
-  // Update only the selected user
+      // Ensure year and session values are correct
+      const year = invoice.year;
+      const session = invoice.session;
+
+      // Perform the update directly on the students' accounts
+      try {
+        const updateResult = await Student.updateMany(
+          {
+            refId: { $in: studentRefIds }, // Match students by refId
+            "accounts.courseRelationId": invoice.courseRelationId, // Match the courseRelationId
+            "accounts.years.year": year, // Match the correct year
+            "accounts.years.sessions.sessionName": session, // Match the correct session
+          },
+          {
+            $set: {
+              "accounts.$[account].years.$[year].sessions.$[session].status": "paid", // Update session status to "paid"
+            },
+          },
+          {
+            arrayFilters: [
+              { "account.courseRelationId": invoice.courseRelationId }, // Ensure the correct account
+              { "year.year": year }, // Ensure the correct year
+              { "session.sessionName": session }, // Ensure the correct session
+            ],
+          }
+        );
+
+      } catch (error) {
+        throw new AppError(httpStatus.NOT_FOUND, "Mark as Paid not Done");
+
+      }
+    }
+  }
+
   const result = await Invoice.findByIdAndUpdate(id, payload, {
     new: true,
     runValidators: true,
   });
+
 
   return result;
 };

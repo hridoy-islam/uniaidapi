@@ -4,22 +4,22 @@ import CourseRelation from "../course-relation/courseRelation.model";
 
 const invoiceSchema = new Schema(
   {
-    reference: { type: String,},
-    date: { type: Date},
+    reference: { type: String, },
+    date: { type: Date },
     noOfStudents: { type: Number },
-    logo: { type: String},
-    remitTo: {
-      name: { type: String},
-      email: { type: String },
-      address: { type: String },
-    },
-    paymentInfo: {
-      sortCode: { type: String, required: true },
-      accountNo: { type: String, required: true },
-      beneficiary: { type: String },
-    },
+    remit: { type: Schema.Types.ObjectId, ref:"Remit" },
 
-    students: [{ type: Types.ObjectId, ref: "Student" }],
+    students: [
+      {
+        collageroll: { type: String, required: true },
+        refId: { type: String, required: true },
+        firstName: { type: String, required: true },
+        lastName: { type: String, required: true },
+        course: { type: String, required: true },
+        amount: { type: Number, required: true },
+      },
+    ],
+
     totalAmount: { type: Number, required: true },
     status: { type: String, enum: ["due", "paid"], required: true, default: "due" },
     createdBy: { type: Types.ObjectId, required: true },
@@ -27,11 +27,11 @@ const invoiceSchema = new Schema(
     year: { type: String },
     session: { type: String },
     semester: { type: String },
-    course:{type: String},
-    exported:{type: Boolean, default: false}
+    course: { type: String },
+    exported: { type: Boolean, default: false }
   },
   {
-    timestamps: true, 
+    timestamps: true,
   }
 );
 
