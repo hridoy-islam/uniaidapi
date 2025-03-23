@@ -30,26 +30,18 @@ const getAllAgentCourseFromDB = async (query: Record<string, unknown>) => {
   const AgentCourseQuery = new QueryBuilder(AgentCourse.find().populate({
     path: 'courseRelationId',
     populate: [
-      {
-        path: 'institute',
-        select: 'name'
-      },
-      {
-        path: 'course',
-        select: 'name'
-      },
-      {
-        path: 'term',
-        select: 'term'
-      }
+      { path: 'institute', select: 'name' },  // Populate the 'institute' field and select 'name'
+      { path: 'course', select: 'name' },     // Populate the 'course' field and select 'name'
+      { path: 'term', select: 'term' },       // Populate the 'term' field and select 'term'
     ]
   })
- , query)
+    , query)
     .search(AgentCourseSearchableFields)
     .filter()
     .sort()
     .paginate()
     .fields();
+
 
   const meta = await AgentCourseQuery.countTotal();
   const result = await AgentCourseQuery.modelQuery;
@@ -62,23 +54,7 @@ const getAllAgentCourseFromDB = async (query: Record<string, unknown>) => {
 
 const getSingleAgentCourseFromDB = async (id: string) => {
   const result = await AgentCourse.findById(id)
-    .populate({
-      path: 'courseRelationId',
-      populate: [
-        {
-          path: 'institute',
-          select: 'name'
-        },
-        {
-          path: 'course',
-          select: 'name'
-        },
-        {
-          path: 'term',
-          select: 'term'
-        }
-      ]
-    });
+    .populate("courseRelationId");
 
   return result;
 };
@@ -94,7 +70,7 @@ const updateAgentCourseIntoDB = async (id: string, payload: Partial<TAgentCourse
   }
 
   // Toggle `isDeleted` status for the selected user only
-  // const newStatus = !user.isDeleted;
+  // "const newStatus = !user.isDeleted;
 
   // // Check if the user is a company, but only update the selected user
   // if (user.role === "company") {

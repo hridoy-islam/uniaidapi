@@ -1,2 +1,2 @@
 
-export const AgentCourseSearchableFields = ["name"];
+export const AgentCourseSearchableFields = ["institute"];

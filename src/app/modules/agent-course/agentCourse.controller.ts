@@ -25,6 +25,9 @@ const getAllAgentCourse: RequestHandler = catchAsync(async (req, res) => {
     data: result,
   });
 });
+
+
+
 const getSingleAgentCourse = catchAsync(async (req, res) => {
   const { id } = req.params;
   const result = await AgentCourseServices.getSingleAgentCourseFromDB(id);
@@ -54,5 +57,5 @@ export const AgentCourseControllers = {
   getAllAgentCourse,
   getSingleAgentCourse,
   updateAgentCourse,
-  AgentCourseCreate
+  AgentCourseCreate,
 };

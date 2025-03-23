@@ -11,38 +11,23 @@ const sessionSchema = new Schema({
 
 // Define the agent course schema
 // Define the main schema for the AgentCourse
-const agentCourseSchema = new Schema(
+const agentCourseSchema = new Schema<TAgentCourse>(
   {
     agentId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    courseRelationId: {
-      type: Schema.Types.ObjectId,
-      ref: "CourseRelation",
-      required: true,
-    },
+    courseRelationId: { type: Schema.Types.ObjectId, ref: "CourseRelation", required: true },
+    
 
     // Define the year field as an array of session documents
     year: {
-      type: [sessionSchema], // Use the sessionSchema to define the array of session objects
-      validate: [arrayLimit, "{PATH} exceeds the limit of 3 sessions"],
+      type: [
+        { sessionName: { type: String }, invoiceDate: { type: Date }, type: { type: String }, rate: { type: Number } },
+      ],
+      validate: [arrayLimit, '{PATH} exceeds the limit of 3 sessions'],
       default: [
-        {
-          sessionName: "Session 1",
-          invoiceDate: new Date(),
-          type: "flat",
-          rate: 0,
-        },
-        {
-          sessionName: "Session 2",
-          invoiceDate: new Date(),
-          type: "flat",
-          rate: 0,
-        },
-        {
-          sessionName: "Session 3",
-          invoiceDate: new Date(),
-          type: "flat",
-          rate: 0,
-        },
+        { sessionName: 'Session 1', invoiceDate: new Date(), type: 'flat', rate: 0 },
+        { sessionName: 'Session 2', invoiceDate: new Date(), type: 'flat', rate: 0 },
+        { sessionName: 'Session 3', invoiceDate: new Date(), type: 'flat', rate: 0 },
+
       ],
     },
 

@@ -6,7 +6,7 @@ import Remit from "../remit/remit.model";
 
 
 const storage = new Storage({
-  keyFilename: "./vast-pride-453709-n7-31c7a3a936b1.json", // Update this path if necessary
+  keyFilename: "./work.json", // Update this path if necessary
   projectId: "vast-pride-453709-n7",
 });
 const bucketName = "uniaid"; // Make sure this bucket exists
@@ -14,7 +14,6 @@ const bucket = storage.bucket(bucketName);
 
 const UploadDocumentToGCS = async (file: any, payload: any) => {
   const { studentId, file_type, remitId } = payload;
-
   try {
     if (!file) throw new AppError(httpStatus.BAD_REQUEST, "No file provided");
 
