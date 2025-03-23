@@ -23,12 +23,13 @@ const sendEmail = async (payload: any) => {
     const host = EmailConfig.host;
     const port = EmailConfig.port;
     const secure = EmailConfig.authentication;
+    const password = EmailConfig.password
 
     const to = emails[0];
 
     // const username = studentId.name;
 
-    await sendEmailUtil(to, from, subject, body, host, port,secure);
+    await sendEmailUtil(to, from, subject,host,   port,secure,body,password);
   } catch (error: any) {
     console.error("Error in sendEmail:", error);
 

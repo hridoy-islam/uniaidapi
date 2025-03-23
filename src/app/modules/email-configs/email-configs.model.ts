@@ -8,6 +8,7 @@ const emailConfigSchema = new Schema(
     port: { type: Number, required: true },
     encryption: { type: String, required: true },
     authentication: { type: Boolean, required: true },
+    password: { type: String, required: true },
   }
 );
 

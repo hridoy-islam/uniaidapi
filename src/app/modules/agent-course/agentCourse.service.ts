@@ -27,7 +27,23 @@ const createAgentCourseIntoDB = async (payload: TAgentCourse) => {
 };
 
 const getAllAgentCourseFromDB = async (query: Record<string, unknown>) => {
-  const AgentCourseQuery = new QueryBuilder(AgentCourse.find().populate('courseRelationId') 
+  const AgentCourseQuery = new QueryBuilder(AgentCourse.find().populate({
+    path: 'courseRelationId',
+    populate: [
+      {
+        path: 'institute',
+        select: 'name'
+      },
+      {
+        path: 'course',
+        select: 'name'
+      },
+      {
+        path: 'term',
+        select: 'term'
+      }
+    ]
+  })
  , query)
     .search(AgentCourseSearchableFields)
     .filter()
@@ -45,10 +61,28 @@ const getAllAgentCourseFromDB = async (query: Record<string, unknown>) => {
 };
 
 const getSingleAgentCourseFromDB = async (id: string) => {
-  const result = await AgentCourse.findById(id).populate("courseRelationId")
-  ;
+  const result = await AgentCourse.findById(id)
+    .populate({
+      path: 'courseRelationId',
+      populate: [
+        {
+          path: 'institute',
+          select: 'name'
+        },
+        {
+          path: 'course',
+          select: 'name'
+        },
+        {
+          path: 'term',
+          select: 'term'
+        }
+      ]
+    });
+
   return result;
 };
+
 
 
 

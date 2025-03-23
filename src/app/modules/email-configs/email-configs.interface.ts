@@ -5,5 +5,6 @@ export interface TEmailConfig{
   host: string;
   port: Number;
   encryption:string;
-  authentication: boolean
+  authentication: boolean;
+  password:string
 }
