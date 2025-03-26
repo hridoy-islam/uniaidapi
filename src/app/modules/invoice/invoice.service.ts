@@ -115,7 +115,7 @@ const getAllInvoiceFromDB = async (query: Record<string, unknown>) => {
     };
   }
 
-  const userQuery = new QueryBuilder(Invoice.find().populate("remit"), processedQuery)
+  const userQuery = new QueryBuilder(Invoice.find().populate("customer").populate("createdBy","sortCode, location, name, email, imgUrl"), processedQuery)
     .search(InvoiceSearchableFields)
     .filter()
     .sort()
@@ -140,10 +140,14 @@ const getSingleInvoiceFromDB = async (id: string) => {
         { path: "institute", select: "name" },
         { path: "term", select: "term" },
       ],
-    }).populate("students", "refId	firstName lastName collageRoll").populate("remit");
+    })
+    .populate("students", "refId firstName lastName collageRoll")
+    .populate("customer")
+    .populate("createdBy", "sortCode location name email imgUrl accountNo location2 city postCode state country");
 
   return result;
 };
+
 
 const updateInvoiceIntoDB = async (id: string, payload: Partial<TInvoice>) => {
   const invoice = await Invoice.findById(id);
@@ -153,42 +157,60 @@ const updateInvoiceIntoDB = async (id: string, payload: Partial<TInvoice>) => {
   }
 
   // Update the invoice status
-
   if (payload.status === "paid" && invoice.status !== "paid") {
-    // Directly update student accounts when invoice status is changed to "paid"
     if (invoice.students && invoice.students.length > 0) {
       const studentRefIds = invoice.students.map((student) => student.refId);
-
-      // Ensure year and session values are correct
       const year = invoice.year;
       const session = invoice.session;
 
-      // Perform the update directly on the students' accounts
       try {
+        // First update student accounts
         const updateResult = await Student.updateMany(
           {
-            refId: { $in: studentRefIds }, // Match students by refId
-            "accounts.courseRelationId": invoice.courseRelationId, // Match the courseRelationId
-            "accounts.years.year": year, // Match the correct year
-            "accounts.years.sessions.sessionName": session, // Match the correct session
+            refId: { $in: studentRefIds },
+            "accounts.courseRelationId": invoice.courseRelationId,
+            "accounts.years.year": year,
+            "accounts.years.sessions.sessionName": session,
           },
           {
             $set: {
-              "accounts.$[account].years.$[year].sessions.$[session].status": "paid", // Update session status to "paid"
+              "accounts.$[account].years.$[year].sessions.$[session].status": "paid",
             },
           },
           {
             arrayFilters: [
-              { "account.courseRelationId": invoice.courseRelationId }, // Ensure the correct account
-              { "year.year": year }, // Ensure the correct year
-              { "session.sessionName": session }, // Ensure the correct session
+              { "account.courseRelationId": invoice.courseRelationId },
+              { "year.year": year },
+              { "session.sessionName": session },
+            ],
+          }
+        );
+
+        // Then update agent payments for each student
+        await Student.updateMany(
+          {
+            refId: { $in: studentRefIds },
+            "agentPayments.courseRelationId": invoice.courseRelationId,
+            "agentPayments.years.year": "Year 1", // Agent payments are only for Year 1
+            "agentPayments.years.sessions.sessionName": session, // Match session ID
+          },
+          {
+            $set: {
+              "agentPayments.$[payment].years.$[year].sessions.$[session].status": "available",
+            },
+          },
+          {
+            arrayFilters: [
+              { "payment.courseRelationId": invoice.courseRelationId },
+              { "year.year": "Year 1" },
+              { "session.sessionName": session },
             ],
           }
         );
 
       } catch (error) {
-        throw new AppError(httpStatus.NOT_FOUND, "Mark as Paid not Done");
-
+        console.error("Error updating student accounts or agent payments:", error);
+        throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Mark as Paid not Done");
       }
     }
   }
@@ -198,11 +220,8 @@ const updateInvoiceIntoDB = async (id: string, payload: Partial<TInvoice>) => {
     runValidators: true,
   });
 
-
   return result;
 };
-
-
 
 
 

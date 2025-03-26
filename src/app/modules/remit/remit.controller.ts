@@ -2,47 +2,47 @@ import { RequestHandler } from "express";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import httpStatus from "http-status";
-import { RemitServices } from "./remit.service";
+import {  RemitInvoiceServices} from "./remit.service";
 
 
 
-const RemitCreate = catchAsync(async (req, res) => {
-  const result = await RemitServices.createRemitIntoDB(req.body);
+const RemitInvoiceCreate = catchAsync(async (req, res) => {
+  const result = await RemitInvoiceServices.createRemitInvoiceIntoDB(req.body);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Remit created successfully",
+    message: "Invoice created successfully",
     data: result,
   });
 });
 
-const getAllRemit: RequestHandler = catchAsync(async (req, res) => {
-  const result = await RemitServices.getAllRemitFromDB(req.query);
+const getAllRemitInvoice: RequestHandler = catchAsync(async (req, res) => {
+  const result = await RemitInvoiceServices.getAllRemitInvoiceFromDB(req.query);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Remit retrived succesfully",
+    message: "Invoice retrived succesfully",
     data: result,
   });
 });
-const getSingleRemit = catchAsync(async (req, res) => {
+const getSingleRemitInvoice = catchAsync(async (req, res) => {
   const { id } = req.params;
-  const result = await RemitServices.getSingleRemitFromDB(id);
+  const result = await RemitInvoiceServices.getSingleRemitInvoiceFromDB(id);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Remit is retrieved succesfully",
+    message: "Invoice is retrieved succesfully",
     data: result,
   });
 });
 
-const updateRemit = catchAsync(async (req, res) => {
+const updateRemitInvoice = catchAsync(async (req, res) => {
   const { id } = req.params;
-  const result = await RemitServices.updateRemitIntoDB(id, req.body);
+  const result = await RemitInvoiceServices.updateRemitInvoiceIntoDB(id, req.body);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Remit is updated succesfully",
+    message: "Invoice is updated succesfully",
     data: result,
   });
 });
@@ -50,9 +50,9 @@ const updateRemit = catchAsync(async (req, res) => {
 
 
 
-export const RemitControllers = {
-  getAllRemit,
-  getSingleRemit,
-  updateRemit,
-  RemitCreate
+export const RemitInvoiceControllers = {
+  getAllRemitInvoice,
+  getSingleRemitInvoice,
+  updateRemitInvoice,
+  RemitInvoiceCreate
 };

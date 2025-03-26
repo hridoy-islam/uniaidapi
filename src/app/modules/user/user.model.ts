@@ -30,6 +30,13 @@ const userSchema = new Schema(
     location: {
       type: String,
     },
+
+    location2: { type: String },
+    city: { type: String },
+    state: { type: String },
+    postCode: { type: String },
+    country: { type: String },
+
     role: {
       type: String,
       enum: ["admin", "agent", "staff"],
@@ -59,11 +66,16 @@ const userSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    imgUrl: { type: String },
 
     contactPerson: {
       type: String,
       default: "",
     },
+
+    sortCode: { type: String },
+    accountNo: { type: String },
+    beneficiary: { type: String },
     privileges: {
       management: {
         course: {

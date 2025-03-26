@@ -24,7 +24,7 @@ router.get(
 
 router.patch(
   "/:id",
-  auth("admin", "agent", "staff"),
+  // auth("admin", "agent", "staff"),
   InvoiceControllers.updateInvoice
 );
 

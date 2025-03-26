@@ -3,6 +3,7 @@ import httpStatus from "http-status";
 import AppError from "../../errors/AppError";
 import Student from "../student/student.model";
 import Remit from "../remit/remit.model";
+import { User } from "../user/user.model";
 
 
 const storage = new Storage({
@@ -13,7 +14,7 @@ const bucketName = "uniaid"; // Make sure this bucket exists
 const bucket = storage.bucket(bucketName);
 
 const UploadDocumentToGCS = async (file: any, payload: any) => {
-  const { studentId, file_type, remitId } = payload;
+  const { entityId, file_type,   } = payload;
   try {
     if (!file) throw new AppError(httpStatus.BAD_REQUEST, "No file provided");
 
@@ -51,31 +52,30 @@ const UploadDocumentToGCS = async (file: any, payload: any) => {
     // Check file type and determine where to save the file URL
     if (file_type === "profile") {
       // For student profile, save to Student model
-      const student = await Student.findById(studentId);
+      const student = await Student.findById(entityId);
       if (!student) throw new AppError(httpStatus.NOT_FOUND, "Student not found");
 
       student.imageUrl = fileUrl; // Save the file URL
       await student.save();
 
-      return { studentId, file_type, fileUrl };
-    } else if (file_type === "logo") {
-      // For remit logo, save to Remit model
-      const remit = await Remit.findById(remitId); // Use remitId here instead of studentId
-      if (!remit) throw new AppError(httpStatus.NOT_FOUND, "Remit not found");
+      return { entityId, file_type, fileUrl };
+    } else if (file_type === "userProfile") {
+      const user = await User.findById(entityId); // Use remitId here instead of studentId
+      if (!user) throw new AppError(httpStatus.NOT_FOUND, "Remit not found");
 
-      remit.logo = fileUrl; // Save the logo file URL
-      await remit.save();
+      user.imgUrl = fileUrl; 
+      await user.save();
 
-      return { remitId, file_type, fileUrl };
+      return { entityId, file_type, fileUrl };
     } else {
       // For other document types, add to Student model's documents array
-      const student = await Student.findById(studentId);
+      const student = await Student.findById(entityId);
       if (!student) throw new AppError(httpStatus.NOT_FOUND, "Student not found");
 
       student.documents.push({ file_type, fileUrl });
       await student.save();
 
-      return { studentId, file_type, fileUrl };
+      return { entityId, file_type, fileUrl };
     }
   } catch (error) {
     console.error("File upload failed:", error);

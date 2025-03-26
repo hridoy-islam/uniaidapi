@@ -1,2 +1,2 @@
 
-export const remitSearchableFields = ["name","email","phone"];
+export const RemitInvoiceSearchableFields = ["reference","remitTo"];

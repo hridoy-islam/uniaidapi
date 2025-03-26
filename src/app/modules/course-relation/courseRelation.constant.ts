@@ -1,2 +1,5 @@
-
-export const courseRelationSearchableFields = ["name"];
+export const courseRelationSearchableFields = [
+  'institute.name',
+  'course.name', 
+  'term.term'
+];

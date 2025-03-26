@@ -52,7 +52,7 @@ class QueryBuilder<T> {
     return this;
   }
 
-  filter() {
+  filter(filters: { [x: string]: unknown; }) {
     const queryObj = { ...this.query }; // copy
 
     // Filtering

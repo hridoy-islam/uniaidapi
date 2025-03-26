@@ -15,7 +15,8 @@ import { EmailRoutes } from "../modules/email/email.route";
 import { EmailLogRoutes } from "../modules/email-logs/email-logs.route";
 import { UploadDocumentRoutes } from "../modules/documents/documents.route";
 import { InvoiceRoutes } from "../modules/invoice/invoice.route";
-import { RemitRoutes } from "../modules/remit/remit.route";
+import { CustomerRoutes} from "../modules/customer/customer.route";
+import { RemitInvoiceRoutes } from "../modules/remit/remit.route";
 
 const router = Router();
 
@@ -85,8 +86,12 @@ const moduleRoutes = [
     route:  InvoiceRoutes ,
   },
   {
-    path: "/remit",
-    route:  RemitRoutes ,
+    path: "/remit-invoice",
+    route:  RemitInvoiceRoutes ,
+  },
+  {
+    path: "/customer",
+    route:  CustomerRoutes ,
   },
   
 ];

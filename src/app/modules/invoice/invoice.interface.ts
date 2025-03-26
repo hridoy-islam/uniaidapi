@@ -7,7 +7,7 @@ export interface TInvoice {
   noOfStudents: number;
   logo: string;
 
-  remit:Types.ObjectId;
+  customer:Types.ObjectId;
   students: {
     collageroll: string;
     refId: string;

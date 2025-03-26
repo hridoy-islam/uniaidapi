@@ -1,12 +1,28 @@
 import { Types } from "mongoose";
 
 export interface TRemit {
-  logo: string;
-  name: string;
-  email: string;
-  address: string;
-  sortCode: string;
-  accountNo: string;
-  beneficiary: string;
+  reference: string;
+  date: Date;
 
+  noOfStudents: number;
+
+  remitTo:Types.ObjectId;
+  students: {
+    collageroll: string;
+    refId: string;
+    name: string;
+    course: string;
+    amount: number;
+  }[];
+
+  totalAmount: number;
+  status: "due" | "paid";
+  createdBy: Types.ObjectId;
+  courseRelationId: Types.ObjectId; 
+  year: string;
+  session: string;
+  semester: string;
+  course: string;
+  exported:boolean
 }
+

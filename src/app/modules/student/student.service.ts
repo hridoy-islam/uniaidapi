@@ -77,6 +77,11 @@ const getAllStudentFromDB = async (query: Record<string, unknown>) => {
     createdBy,
     session,
     paymentStatus,
+    agentid, 
+    agentCourseRelationId, 
+    agentYear,
+    agentSession,
+    agentPaymentStatus,
     ...otherQueryParams
   } = query;
 
@@ -124,6 +129,53 @@ const getAllStudentFromDB = async (query: Record<string, unknown>) => {
       $in: courseRelationIds,
     };
   }
+
+console.log()
+
+  if (agentid || agentCourseRelationId || agentYear || agentSession || agentPaymentStatus) {
+    const agentPaymentsQuery: Record<string, unknown> = {};
+  
+
+    // Convert string IDs to ObjectId if needed (match your DB schema)
+    if (agentid) {
+      agentPaymentsQuery["agent"] = new mongoose.Types.ObjectId(agentid);
+    }
+  
+    if (agentCourseRelationId) {
+      agentPaymentsQuery["courseRelationId"] = new mongoose.Types.ObjectId(agentCourseRelationId);
+    }
+  
+    if (agentYear || agentSession || agentPaymentStatus) {
+      const agentYearsQuery: Record<string, unknown> = {};
+  
+      if (agentYear) {
+        agentYearsQuery["year"] = agentYear;
+      }
+  
+      if (agentSession || agentPaymentStatus) {
+        const agentSessionsQuery: Record<string, unknown> = {};
+  
+        if (agentSession) {
+          agentSessionsQuery["sessionName"] = agentSession;
+        }
+  
+        if (agentPaymentStatus) {
+          agentSessionsQuery["status"] = agentPaymentStatus;
+        }
+  
+        agentYearsQuery["sessions"] = { $elemMatch: agentSessionsQuery };
+      }
+  
+      agentPaymentsQuery["years"] = { $elemMatch: agentYearsQuery };
+    }
+  
+    // Now, use $elemMatch directly without wrapping in $and
+    processedQuery["agentPayments"] = {
+      $elemMatch: agentPaymentsQuery,
+    };
+  }
+  
+
 
   if (applicationCourse || year || session || paymentStatus) {
     const accountsQuery: Record<string, unknown> = {};
@@ -240,6 +292,14 @@ const getSingleStudentFromDB = async (id: string) => {
     .populate("accounts.years.sessions")
     .populate({
       path: "accounts.courseRelationId",
+      populate: [
+        { path: "course", select: "name" },
+        { path: "institute", select: "name" },
+        { path: "term", select: "term" },
+      ],
+    }).populate("agentPayments.years.sessions")
+    .populate({
+      path: "agentPayments.courseRelationId",
       populate: [
         { path: "course", select: "name" },
         { path: "institute", select: "name" },

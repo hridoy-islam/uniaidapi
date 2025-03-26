@@ -36,6 +36,15 @@ export interface TUser {
   status: 0 | 1; 
   isDeleted:boolean;
   contactPerson?: string;
+  location2?:string;
+  city?: string;
+  state?:string;
+  postCode?:string;
+  country?:string;
+  imgUrl?:string;
+  sortCode?: string;
+ accountNo?: string;
+ beneficiary?:string;
   privileges: {
     management: {
       course: boolean;
