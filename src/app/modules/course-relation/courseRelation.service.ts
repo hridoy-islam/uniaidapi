@@ -11,7 +11,16 @@ import CourseRelation from "./courseRelation.model";
 
 const createCourseRelationIntoDB = async (payload: TCourseRelation) => {
   try {
-    
+    const existingCourse = await CourseRelation.findOne({
+      term: payload.term,
+      course: payload.course, 
+      institute:payload.institute
+    });
+
+    if (existingCourse) {
+      throw new AppError(httpStatus.BAD_REQUEST, "This Course already exists");
+    }
+
     const result = await CourseRelation.create(payload);
     return result;
   } catch (error: any) {

@@ -130,7 +130,7 @@ const getAllStudentFromDB = async (query: Record<string, unknown>) => {
     };
   }
 
-console.log()
+
 
   if (agentid || agentCourseRelationId || agentYear || agentSession || agentPaymentStatus) {
     const agentPaymentsQuery: Record<string, unknown> = {};

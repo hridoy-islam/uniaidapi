@@ -11,7 +11,16 @@ import AgentCourse from "./agentCourse.model";
 
 const createAgentCourseIntoDB = async (payload: TAgentCourse) => {
   try {
-    
+    const existingCourse = await AgentCourse.findOne({
+      agentId: payload.agentId,
+      courseRelationId: payload.courseRelationId, 
+    });
+
+
+    if (existingCourse) {
+      throw new AppError(httpStatus.BAD_REQUEST, "This Course already exists");
+    }
+
     const result = await AgentCourse.create(payload);
     return result;
   } catch (error: any) {

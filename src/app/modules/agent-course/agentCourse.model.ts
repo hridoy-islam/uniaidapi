@@ -41,6 +41,7 @@ function arrayLimit(val: any[]) {
   return val.length === 3;
 }
 
+
 // Populate the year field before saving
 agentCourseSchema.pre("save", async function (next) {
   const courseRelation = await mongoose
