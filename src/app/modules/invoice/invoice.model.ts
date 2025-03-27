@@ -11,7 +11,7 @@ const invoiceSchema = new Schema(
 
     students: [
       {
-        collageroll: { type: String, required: true },
+        collegeRoll: { type: String, required: true },
         refId: { type: String, required: true },
         firstName: { type: String, required: true },
         lastName: { type: String, required: true },

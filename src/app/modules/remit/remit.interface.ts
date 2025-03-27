@@ -8,7 +8,7 @@ export interface TRemit {
 
   remitTo:Types.ObjectId;
   students: {
-    collageroll: string;
+    collegeRoll: string;
     refId: string;
     name: string;
     course: string;

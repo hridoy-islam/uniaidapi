@@ -141,7 +141,7 @@ const getSingleInvoiceFromDB = async (id: string) => {
         { path: "term", select: "term" },
       ],
     })
-    .populate("students", "refId firstName lastName collageRoll")
+    .populate("students", "refId firstName lastName collegeRoll")
     .populate("customer")
     .populate("createdBy", "sortCode location name email imgUrl accountNo location2 city postCode state country");
 

@@ -140,7 +140,7 @@ const getSingleRemitInvoiceFromDB = async (id: string) => {
         { path: "institute", select: "name" },
         { path: "term", select: "term" },
       ],
-    }).populate("students", "refId	firstName lastName collageRoll").populate("remitTo");
+    }).populate("students", "refId	firstName lastName collegeRoll").populate("remitTo");
 
   return result;
 };

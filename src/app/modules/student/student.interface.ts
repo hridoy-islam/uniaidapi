@@ -21,7 +21,7 @@ export interface TStudent {
   lastName: string;
   email: string;
   phone: string;
-  collageRoll: string ;
+  collegeRoll: string ;
   dob: Date; 
   imageUrl: string;
   noDocuments: boolean;

@@ -9,7 +9,7 @@ export interface TInvoice {
 
   customer:Types.ObjectId;
   students: {
-    collageroll: string;
+    collegeRoll: string;
     refId: string;
     name: string;
     course: string;

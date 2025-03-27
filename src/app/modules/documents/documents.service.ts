@@ -61,7 +61,7 @@ const UploadDocumentToGCS = async (file: any, payload: any) => {
       return { entityId, file_type, fileUrl };
     } else if (file_type === "userProfile") {
       const user = await User.findById(entityId); // Use remitId here instead of studentId
-      if (!user) throw new AppError(httpStatus.NOT_FOUND, "Remit not found");
+      if (!user) throw new AppError(httpStatus.NOT_FOUND, "profile not found");
 
       user.imgUrl = fileUrl; 
       await user.save();
