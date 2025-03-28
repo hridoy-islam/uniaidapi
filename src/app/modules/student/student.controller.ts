@@ -48,11 +48,32 @@ const updateStudent = catchAsync(async (req, res) => {
 });
 
 
+const updateStudentApplication = catchAsync(async (req, res) => {
+  const { id, appId } = req.params;
+  const { newStatus, changedBy } = req.body;
+
+ 
+
+  const result = await StudentServices.updateStudentApplicationIntoDB(
+    id,
+    appId,
+    { newStatus, changedBy }
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Student application updated successfully",
+    data: result,
+  });
+});
+
 
 
 export const StudentControllers = {
   getAllStudent,
   getSingleStudent,
   updateStudent,
-  StudentCreate
+  StudentCreate,
+  updateStudentApplication
 };

@@ -28,5 +28,12 @@ router.patch(
   StudentControllers.updateStudent
 );
 
+router.patch(
+  "/:id/application/:appId",
+  auth("admin", "agent", "staff"),
+  StudentControllers.updateStudentApplication
+);
+
+
 
 export const StudentRoutes = router;

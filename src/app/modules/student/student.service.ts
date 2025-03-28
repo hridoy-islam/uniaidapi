@@ -10,6 +10,7 @@ import { User } from "../user/user.model";
 import mongoose, { Types } from "mongoose";
 import CourseRelation from "../course-relation/courseRelation.model";
 import Term from "../term/term.model";
+import AgentCourse from "../agent-course/agentCourse.model";
 
 const generateRefId = async (): Promise<string> => {
   // Get the current date in YYYYMMDD format
@@ -311,47 +312,243 @@ const getSingleStudentFromDB = async (id: string) => {
 };
 
 const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
-  const student = await Student.findById(id);
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  if (!student) {
-    throw new AppError(httpStatus.NOT_FOUND, "Student not found");
-  }
-  if (payload.agent) {
-    const agent = await User.findById(payload.agent);
-    if (!agent) {
-      throw new AppError(httpStatus.NOT_FOUND, "Agent not found");
+  try {
+    const student = await Student.findById(id).session(session);
+    if (!student) {
+      throw new AppError(httpStatus.NOT_FOUND, "Student not found");
     }
 
-    if (agent.email === "m.bhuiyan@lcc.ac.uk") {
-      payload.assignStaff = [student.createdBy]; // Copy createdBy ID to assignStaff
-    } else {
-      payload.assignStaff = agent.nominatedStaffs; // Otherwise, use nominatedStaffs
+    // Handle agent assignment logic
+    if (payload.agent) {
+      const agent = await User.findById(payload.agent).session(session);
+      if (!agent) {
+        throw new AppError(httpStatus.NOT_FOUND, "Agent not found");
+      }
+
+      if (agent.email === "m.bhuiyan@lcc.ac.uk") {
+        payload.assignStaff = [student.createdBy];
+      } else {
+        payload.assignStaff = agent.nominatedStaffs;
+      }
     }
 
-    // Replace assignStaff with the new agent's nominatedStaffs
-    // payload.assignStaff = agent.nominatedStaffs;
+    // Prevent duplicate courseRelationId in applications
+    if (payload.applications) {
+      const newApplications = Array.isArray(payload.applications) 
+        ? payload.applications 
+        : [payload.applications];
+
+      for (const newApp of newApplications) {
+        if (newApp.courseRelationId) {
+          // Check if courseRelationId already exists in student's applications
+          const duplicateExists = student.applications.some(app => 
+            app.courseRelationId?.equals(newApp.courseRelationId)
+          );
+
+          if (duplicateExists) {
+            // Get course details for better error message
+            const courseRelation = await CourseRelation.findById(newApp.courseRelationId)
+              .populate('course')
+              .session(session);
+            
+            const courseName = courseRelation?.course?.name || 'Unknown Course';
+            throw new AppError(
+              httpStatus.BAD_REQUEST, 
+              `Duplicate Application`
+            );
+          }
+        }
+      }
+    }
+
+    const result = await Student.findByIdAndUpdate(
+      id, 
+      payload, 
+      { new: true, runValidators: true, session }
+    );
+
+    await session.commitTransaction();
+    return result;
+
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
   }
-
-  // Toggle `isDeleted` status for the selected user only
-  // const newStatus = !user.isDeleted;
-
-  // // Check if the user is a company, but only update the selected user
-  // if (user.role === "company") {
-  //   payload.isDeleted = newStatus;
-  // }
-
-  // Update only the selected user
-  const result = await Student.findByIdAndUpdate(id, payload, {
-    new: true,
-    runValidators: true,
-  });
-
-  return result;
 };
+
+
+const updateStudentApplicationIntoDB = async (
+  id: string,
+  appId: string,
+  payload: {
+    newStatus: string;
+    changedBy: string;
+  }
+) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { newStatus, changedBy } = payload;
+
+    // 1. Find the student and application
+    const student = await Student.findById(id).session(session);
+    if (!student) {
+      throw new AppError(httpStatus.NOT_FOUND, 'Student not found');
+    }
+
+    const application = student.applications.find(app => app._id.equals(appId));
+    if (!application) {
+      throw new AppError(httpStatus.NOT_FOUND, 'Application not found');
+    }
+    // 2. Handle status log according to your schema requirements
+    const previousStatus = application.status || null;
+    const isInitialStatus = !application.statusLogs || application.statusLogs.length === 0;
+
+    const statusLog: any = {
+      prev_status: previousStatus,
+      changed_to: newStatus,
+      created_at: new Date(),
+    };
+
+    if (isInitialStatus) {
+      // For initial status - only set changed_by (not assigned fields)
+      statusLog.changed_by = changedBy;
+    } else {
+      // For subsequent changes - track both assignment and change
+      const lastLog = application.statusLogs[application.statusLogs.length - 1];
+      statusLog.assigned_by = lastLog.changed_by;
+      statusLog.assigned_at = lastLog.created_at;
+      statusLog.changed_by = changedBy;
+    }
+
+    application.status = newStatus;
+    application.statusLogs = [...(application.statusLogs || []), statusLog];
+
+
+
+    // 3. Handle enrollment logic if status is 'Enrolled'
+    if (newStatus === 'Enrolled') {
+      const courseRelationId = application.courseRelationId;
+
+      // Validation checks
+      if (!student.agent) {
+        throw new AppError(httpStatus.BAD_REQUEST, 'Student has no assigned agent');
+      }
+
+      const agentCourse = await AgentCourse.findOne({
+        agentId: student.agent,
+        courseRelationId: courseRelationId,
+        status: 1
+      }).session(session);
+
+      if (!agentCourse) {
+        throw new AppError(httpStatus.BAD_REQUEST, 'Agent is not assigned to this course ');
+      }
+
+      if (student.accounts?.some(acc => acc.courseRelationId.equals(courseRelationId))) {
+        throw new AppError(httpStatus.BAD_REQUEST, 'Student already has this course in accounts');
+      }
+
+      // Get complete course details
+      const courseRelation = await CourseRelation.findById(courseRelationId)
+        .populate('institute')
+        .populate('course')
+        .populate('term')
+        .session(session);
+      
+      if (!courseRelation) {
+        throw new AppError(httpStatus.NOT_FOUND, 'Course not found');
+      }
+
+      // Create accounts entry
+      const accountsData = {
+        courseRelationId: courseRelationId,
+        years: courseRelation.years.map(year => ({
+          year: year.year,
+          sessions: year.sessions.map(session => ({
+            sessionName: session.sessionName,
+            invoiceDate: session.invoiceDate,
+            status: 'due'
+          }))
+        }))
+      };
+
+      student.accounts = student.accounts || [];
+      student.accounts.push(accountsData);
+
+      // Handle agent payments - Find Year 1 data
+      const year1 = courseRelation.years.find(y => y.year === "Year 1");
+      if (year1) {
+        student.agentPayments = student.agentPayments || [];
+        
+        const courseExistsInPayments = student.agentPayments.some(
+          payment => payment.courseRelationId._id.equals(courseRelationId)
+        );
+
+        if (!courseExistsInPayments) {
+          const agentPaymentData = {
+            courseRelationId: {
+              _id: courseRelation._id,
+              institute: courseRelation.institute,
+              course: courseRelation.course,
+              term: courseRelation.term,
+              local: courseRelation.local,
+              local_amount: courseRelation.local_amount,
+              international: courseRelation.international,
+              international_amount: courseRelation.international_amount,
+              status: courseRelation.status,
+              years: courseRelation.years,
+            },
+            agent: student.agent,
+            years: [{
+              year: "Year 1",
+              sessions: year1.sessions.map(session => ({
+                sessionName: session.sessionName,
+                invoiceDate: session.invoiceDate,
+                status: "due",
+                type: session.type,
+                rate: session.rate
+              }))
+            }]
+          };
+          student.agentPayments.push(agentPaymentData);
+        }
+      }
+    }
+
+    await student.save({ session });
+    await session.commitTransaction();
+    await session.endSession();
+
+    return {
+      applicationId: application._id,
+      status: application.status,
+      prevStatus: previousStatus,
+      ...(newStatus === 'Enrolled' && { 
+        enrolledCourse: application.courseRelationId,
+        accounts: student.accounts,
+        agentPayments: student.agentPayments 
+      })
+    };
+
+  } catch (error) {
+    await session.abortTransaction();
+    await session.endSession();
+    throw error;
+  }
+};
+
 
 export const StudentServices = {
   getAllStudentFromDB,
   getSingleStudentFromDB,
   updateStudentIntoDB,
   createStudentIntoDB,
+  updateStudentApplicationIntoDB,
 };

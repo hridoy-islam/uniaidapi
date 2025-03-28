@@ -3,7 +3,7 @@ import { TStudent } from "./student.interface";
 
 // Define the Session Schema
 const SessionSchema = new Schema({
-  id: { type: String, required: true },
+  id: { type: String },
   sessionName: { type: String, required: true },
   invoiceDate: { type: Date, required: true },
   status: { type: String, enum: ["due", "paid"], default: "due" },
@@ -88,7 +88,7 @@ const WorkExperienceSchema = new Schema({
 });
 
 const AgentPaymentSessionSchema = new Schema({
-  id: { type: String ,require: true},
+  id: { type: String },
   sessionName: { type: String ,require: true},
   invoiceDate: { type: Date ,require: true},
   status: { 
