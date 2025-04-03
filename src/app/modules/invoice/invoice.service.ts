@@ -54,7 +54,7 @@ const createInvoiceIntoDB = async (payload: TInvoice) => {
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, "0");
     const date = String(now.getDate()).padStart(2, "0");
-    const currentDate = `${year}${month}${date}`; // Removed '-'
+    const currentDate = `${year}${month}${date}`; 
     
     // Find the latest invoice of the day
     const lastInvoice = await Invoice.findOne({ reference: { $regex: `^${currentDate}` } })
