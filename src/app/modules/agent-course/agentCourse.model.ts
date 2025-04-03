@@ -24,9 +24,9 @@ const agentCourseSchema = new Schema<TAgentCourse>(
       ],
       validate: [arrayLimit, '{PATH} exceeds the limit of 3 sessions'],
       default: [
-        { sessionName: 'Session 1', invoiceDate: new Date(), type: 'flat', rate: 0 },
-        { sessionName: 'Session 2', invoiceDate: new Date(), type: 'flat', rate: 0 },
-        { sessionName: 'Session 3', invoiceDate: new Date(), type: 'flat', rate: 0 },
+        { sessionName: 'Session 1', invoiceDate: '', type: 'flat', rate: 0 },
+        { sessionName: 'Session 2', invoiceDate: '', type: 'flat', rate: 0 },
+        { sessionName: 'Session 3', invoiceDate: '', type: 'flat', rate: 0 },
 
       ],
     },
@@ -43,24 +43,48 @@ function arrayLimit(val: any[]) {
 
 
 // Populate the year field before saving
+// agentCourseSchema.pre("save", async function (next) {
+//   const courseRelation = await mongoose
+//     .model("CourseRelation")
+//     .findById(this.courseRelationId)
+//     .exec();
+//   if (
+//     courseRelation &&
+//     courseRelation.years &&
+//     courseRelation.years[0] &&
+//     courseRelation.years[0].sessions
+//   ) {
+//     const sessions = courseRelation.years[0].sessions.map((session: any) => ({
+//       sessionName: session.sessionName,
+//       invoiceDate: session.invoiceDate,
+//       type: "flat",
+//       rate: "",
+//     }));
+//     this.year = sessions; // Assigning sessions from the first year
+//   }
+//   next();
+// });
+
 agentCourseSchema.pre("save", async function (next) {
   const courseRelation = await mongoose
     .model("CourseRelation")
     .findById(this.courseRelationId)
     .exec();
-  if (
-    courseRelation &&
-    courseRelation.years &&
-    courseRelation.years[0] &&
-    courseRelation.years[0].sessions
-  ) {
-    const sessions = courseRelation.years[0].sessions.map((session: any) => ({
-      sessionName: session.sessionName,
-      invoiceDate: session.invoiceDate,
-      type: "flat",
-      rate: "",
-    }));
-    this.year = sessions; // Assigning sessions from the first year
+
+  if (courseRelation && courseRelation.years) {
+    const year1Data = courseRelation.years.find(
+      (year: any) => year.year === "Year 1"
+    );
+
+    if (year1Data && year1Data.sessions) {
+      const sessions = year1Data.sessions.map((session: any) => ({
+        sessionName: session.sessionName,
+        invoiceDate: session.invoiceDate,
+        type: "flat",  // Default type
+        rate: "",      // Default empty rate
+      }));
+      this.year = sessions;
+    }
   }
   next();
 });
