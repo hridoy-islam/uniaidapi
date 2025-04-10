@@ -57,6 +57,7 @@ export interface TUser {
       invoices: boolean;
       staffs: boolean;
       agent: boolean;
+      bank: boolean;
     };
     student: {
       assignStaff: boolean;

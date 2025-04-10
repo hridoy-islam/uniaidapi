@@ -17,7 +17,6 @@ const yearSchema = new Schema({
   sessions: [sessionSchema], // Array of sessions
 });
 
-// Define the course relation schema
 const courseRelationSchema = new Schema<TCourseRelation>(
   {
     institute: { type: Schema.Types.ObjectId, ref: "Institution", required: true },
@@ -45,7 +44,6 @@ courseRelationSchema.virtual("term_name").get(function () {
   return this.term?.term;
 });
 
-// Apply the type at the model level
 const CourseRelation = mongoose.model<TCourseRelation>("CourseRelation", courseRelationSchema);
 
 

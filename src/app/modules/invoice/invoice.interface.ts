@@ -8,6 +8,7 @@ export interface TInvoice {
   logo: string;
 
   customer:Types.ObjectId;
+  bank:Types.ObjectId;
   students: {
     collegeRoll: string;
     refId: string;

@@ -17,6 +17,7 @@ import { UploadDocumentRoutes } from "../modules/documents/documents.route";
 import { InvoiceRoutes } from "../modules/invoice/invoice.route";
 import { CustomerRoutes} from "../modules/customer/customer.route";
 import { RemitInvoiceRoutes } from "../modules/remit/remit.route";
+import { BankRoutes } from "../modules/bank/bank.route";
 
 const router = Router();
 
@@ -92,6 +93,10 @@ const moduleRoutes = [
   {
     path: "/customer",
     route:  CustomerRoutes ,
+  },
+  {
+    path: "/bank",
+    route:  BankRoutes ,
   },
   
 ];

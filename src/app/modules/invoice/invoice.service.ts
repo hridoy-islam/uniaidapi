@@ -8,44 +8,6 @@ import { TInvoice } from "./invoice.interface";
 import Student from "../student/student.model";
 import moment from "moment";
 
-// const updateStudentAccounts = async (
-//   students,
-//   courseRelationId,
-//   year,
-//   session,
-//   status
-// ) => {
-//   try {
-//     if (!students.length) return;
-
-//     const studentRefIds = students.map((student) => student.refId);
-
-//     const result = await Student.updateMany(
-//       {
-//         refId: { $in: studentRefIds }, // Match students by refId
-//         "accounts.courseRelationId": courseRelationId, // Match the courseRelationId inside accounts array
-//         "accounts.years.year": year, // Match the correct year
-//         "accounts.years.sessions.sessionName": session, // Match the correct session
-//       },
-//       {
-//         $set: {
-//           "accounts.$[account].years.$[year].sessions.$[session].status": status, // Update status inside sessions array
-//         },
-//       },
-//       {
-//         arrayFilters: [
-//           { "account.courseRelationId": courseRelationId }, // Ensure the correct account
-//           { "years.year": year }, // Ensure the correct year
-//           { "session.sessionName": session }, // Ensure the correct session
-//         ],
-//       }
-//     );
-
-//     console.log(`${result.modifiedCount} student accounts updated to ${status}`);
-//   } catch (error) {
-//     console.error("Error updating student account payment status:", error);
-//   }
-// };
 
 const createInvoiceIntoDB = async (payload: TInvoice) => {
   try {
@@ -115,7 +77,7 @@ const getAllInvoiceFromDB = async (query: Record<string, unknown>) => {
     };
   }
 
-  const userQuery = new QueryBuilder(Invoice.find().populate("customer").populate("createdBy","sortCode, location, name, email, imgUrl"), processedQuery)
+  const userQuery = new QueryBuilder(Invoice.find().populate("customer").populate("createdBy","sortCode, location, name, email, imgUrl").populate('bank'), processedQuery)
     .search(InvoiceSearchableFields)
     .filter()
     .sort()
@@ -143,7 +105,8 @@ const getSingleInvoiceFromDB = async (id: string) => {
     })
     .populate("students", "refId firstName lastName collegeRoll")
     .populate("customer")
-    .populate("createdBy", "sortCode location name email imgUrl accountNo location2 city postCode state country");
+    .populate("createdBy", "sortCode location name email imgUrl accountNo location2 city postCode state country") .populate('bank');
+   
 
   return result;
 };

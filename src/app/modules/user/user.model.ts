@@ -118,6 +118,10 @@ const userSchema = new Schema(
           type: Boolean,
           default: false,
         },
+        bank: {
+          type: Boolean,
+          default: false,
+        },
       },
       student: {
         assignStaff: {

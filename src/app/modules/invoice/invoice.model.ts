@@ -7,8 +7,8 @@ const invoiceSchema = new Schema(
     reference: { type: String, },
     date: { type: Date },
     noOfStudents: { type: Number },
-    customer: { type: Schema.Types.ObjectId, ref:"Customer" },
-
+    customer: { type: Schema.Types.ObjectId, ref:"Customer",required: true},
+    bank: { type: Schema.Types.ObjectId, ref:"Bank" ,required: true},
     students: [
       {
         collegeRoll: { type: String },

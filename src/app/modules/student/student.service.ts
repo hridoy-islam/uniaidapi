@@ -406,6 +406,7 @@ const updateStudentApplicationIntoDB = async (
     if (!application) {
       throw new AppError(httpStatus.NOT_FOUND, 'Application not found');
     }
+
     // 2. Handle status log according to your schema requirements
     const previousStatus = application.status || null;
     const isInitialStatus = !application.statusLogs || application.statusLogs.length === 0;
@@ -417,10 +418,8 @@ const updateStudentApplicationIntoDB = async (
     };
 
     if (isInitialStatus) {
-      // For initial status - only set changed_by (not assigned fields)
       statusLog.changed_by = changedBy;
     } else {
-      // For subsequent changes - track both assignment and change
       const lastLog = application.statusLogs[application.statusLogs.length - 1];
       statusLog.assigned_by = lastLog.changed_by;
       statusLog.assigned_at = lastLog.created_at;
@@ -430,13 +429,27 @@ const updateStudentApplicationIntoDB = async (
     application.status = newStatus;
     application.statusLogs = [...(application.statusLogs || []), statusLog];
 
-
-
     // 3. Handle enrollment logic if status is 'Enrolled'
     if (newStatus === 'Enrolled') {
       const courseRelationId = application.courseRelationId;
 
-      // Validation checks
+      // Validation check for "Year 1" in course relation
+      const courseRelation = await CourseRelation.findById(courseRelationId)
+        .populate('institute')
+        .populate('course')
+        .populate('term')
+        .session(session);
+      
+      if (!courseRelation) {
+        throw new AppError(httpStatus.NOT_FOUND, 'Course not found');
+      }
+
+      const hasYear1 = courseRelation.years.some(year => year.year === "Year 1");
+      if (!hasYear1) {
+        throw new AppError(httpStatus.BAD_REQUEST, 'Course relation must have at least Year 1');
+      }
+
+      // Proceed with the rest of the logic
       if (!student.agent) {
         throw new AppError(httpStatus.BAD_REQUEST, 'Student has no assigned agent');
       }
@@ -448,22 +461,11 @@ const updateStudentApplicationIntoDB = async (
       }).session(session);
 
       if (!agentCourse) {
-        throw new AppError(httpStatus.BAD_REQUEST, 'Agent is not assigned to this course ');
+        throw new AppError(httpStatus.BAD_REQUEST, 'Agent is not assigned to this course');
       }
 
       if (student.accounts?.some(acc => acc.courseRelationId.equals(courseRelationId))) {
         throw new AppError(httpStatus.BAD_REQUEST, 'Student already has this course in accounts');
-      }
-
-      // Get complete course details
-      const courseRelation = await CourseRelation.findById(courseRelationId)
-        .populate('institute')
-        .populate('course')
-        .populate('term')
-        .session(session);
-      
-      if (!courseRelation) {
-        throw new AppError(httpStatus.NOT_FOUND, 'Course not found');
       }
 
       // Create accounts entry
@@ -543,6 +545,7 @@ const updateStudentApplicationIntoDB = async (
     throw error;
   }
 };
+
 
 
 export const StudentServices = {
