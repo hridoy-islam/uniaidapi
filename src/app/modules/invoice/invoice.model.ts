@@ -28,7 +28,14 @@ const invoiceSchema = new Schema(
     session: { type: String },
     semester: { type: String },
     course: { type: String },
-    exported: { type: Boolean, default: false }
+    exported: { type: Boolean, default: false },
+    discountType: {
+      type: String,
+      enum: ["percentage", "flat"],
+    },
+    discountAmount: { type: Number , default:0},
+    discountMsg: { type: String , default:""},
+    vat: { type: Number, default: 0 },
   },
   {
     timestamps: true,

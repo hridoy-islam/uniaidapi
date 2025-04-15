@@ -42,28 +42,6 @@ function arrayLimit(val: any[]) {
 }
 
 
-// Populate the year field before saving
-// agentCourseSchema.pre("save", async function (next) {
-//   const courseRelation = await mongoose
-//     .model("CourseRelation")
-//     .findById(this.courseRelationId)
-//     .exec();
-//   if (
-//     courseRelation &&
-//     courseRelation.years &&
-//     courseRelation.years[0] &&
-//     courseRelation.years[0].sessions
-//   ) {
-//     const sessions = courseRelation.years[0].sessions.map((session: any) => ({
-//       sessionName: session.sessionName,
-//       invoiceDate: session.invoiceDate,
-//       type: "flat",
-//       rate: "",
-//     }));
-//     this.year = sessions; // Assigning sessions from the first year
-//   }
-//   next();
-// });
 
 agentCourseSchema.pre("save", async function (next) {
   const courseRelation = await mongoose

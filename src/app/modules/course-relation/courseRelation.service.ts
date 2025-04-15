@@ -8,6 +8,7 @@ import { TCourseRelation } from "./courseRelation.interface";
 import CourseRelation from "./courseRelation.model";
 import Student from "../student/student.model";
 import mongoose, { Types } from "mongoose";
+import AgentCourse from "../agent-course/agentCourse.model";
 
 
 
@@ -79,7 +80,6 @@ const getSingleCourseRelationFromDB = async (id: string) => {
 //   return result;
 // };
 
-
 const updateCourseRelationIntoDB = async (id: string, payload: Partial<TCourseRelation>) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -91,6 +91,10 @@ const updateCourseRelationIntoDB = async (id: string, payload: Partial<TCourseRe
     if (!courseRelation) {
       throw new AppError(httpStatus.NOT_FOUND, "CourseRelation not found");
     }
+
+    // Track if Year 1 sessions are being updated
+    let year1Updated = false;
+    let year1Sessions: Array<{sessionName: string, invoiceDate: Date}> = [];
 
     if (payload.years) {
       const existingYears = courseRelation.years.map(year => ({
@@ -122,6 +126,12 @@ const updateCourseRelationIntoDB = async (id: string, payload: Partial<TCourseRe
             );
 
             if (existingSessionIndex !== -1) {
+              // Check if invoiceDate is being updated for Year 1
+              if (newYear.year === "Year 1" && newSession.invoiceDate && 
+                  existingSessions[existingSessionIndex].invoiceDate !== newSession.invoiceDate) {
+                year1Updated = true;
+              }
+
               // Update the session if it exists
               existingSessions[existingSessionIndex] = {
                 _id: existingSessions[existingSessionIndex]._id,
@@ -141,6 +151,11 @@ const updateCourseRelationIntoDB = async (id: string, payload: Partial<TCourseRe
                 rate: newSession.rate,
                 status: newSession.status 
               });
+
+              // Track if we're adding to Year 1
+              if (newYear.year === "Year 1") {
+                year1Updated = true;
+              }
             }
           });
         } else {
@@ -157,27 +172,39 @@ const updateCourseRelationIntoDB = async (id: string, payload: Partial<TCourseRe
               status: session.status 
             })) || []
           });
+
+          // Track if we're adding Year 1
+          if (newYear.year === "Year 1") {
+            year1Updated = true;
+          }
+        }
+
+        // Store Year 1 sessions if this is Year 1
+        if (newYear.year === "Year 1") {
+          year1Sessions = existingYears[existingYearIndex]?.sessions?.map(s => ({
+            sessionName: s.sessionName,
+            invoiceDate: s.invoiceDate
+          })) || [];
         }
       });
 
-      // Update the payload with the merged years
       payload.years = existingYears;
     }
 
-    // Update the course relation in the database
     const result = await CourseRelation.findByIdAndUpdate(
       id,
       payload,
       { new: true, runValidators: true, session }
     );
 
-    // Now, update student accounts
+    // Update related students and agent courses
     if (payload.years) {
+      // Update students
       const students = await Student.find({
         'accounts.courseRelationId': id
       }).session(session);
 
-      const updatePromises = students.map(async (student) => {
+      const studentUpdatePromises = students.map(async (student) => {
         const accountIndex = student.accounts.findIndex(
           acc => acc.courseRelationId.toString() === id
         );
@@ -193,7 +220,7 @@ const updateCourseRelationIntoDB = async (id: string, payload: Partial<TCourseRe
               invoiceDate: session.invoiceDate,
               type: session.type,
               rate: session.rate,
-              status: session.status // Ensure status is included
+              status: session.status 
             })) || []
           }));
 
@@ -218,7 +245,7 @@ const updateCourseRelationIntoDB = async (id: string, payload: Partial<TCourseRe
                     invoiceDate: newSession.invoiceDate || existingSessions[existingSessionIndex].invoiceDate,
                     type: newSession.type || existingSessions[existingSessionIndex].type,
                     rate: newSession.rate || existingSessions[existingSessionIndex].rate,
-                    status: newSession.status || existingSessions[existingSessionIndex].status // Merge status
+                    status: newSession.status || existingSessions[existingSessionIndex].status
                   };
                 } else {
                   existingSessions.push({
@@ -227,7 +254,7 @@ const updateCourseRelationIntoDB = async (id: string, payload: Partial<TCourseRe
                     invoiceDate: newSession.invoiceDate,
                     type: newSession.type,
                     rate: newSession.rate,
-                    status: newSession.status // Add the status to new sessions
+                    status: newSession.status
                   });
                 }
               });
@@ -242,19 +269,42 @@ const updateCourseRelationIntoDB = async (id: string, payload: Partial<TCourseRe
                   invoiceDate: session.invoiceDate,
                   type: session.type,
                   rate: session.rate,
-                  status: session.status // Add the status to the new year
+                  status: session.status
                 })) || []
               });
             }
           });
 
-          // Update the student's account with the merged years and sessions
           student.accounts[accountIndex].years = existingAccountYears;
+
+          
           await student.save({ session });
         }
       });
 
-      await Promise.all(updatePromises);
+      // Update agent courses if Year 1 was updated
+      if (year1Updated && year1Sessions.length > 0) {
+        await AgentCourse.updateMany(
+          { courseRelationId: id },
+          {
+            $set: {
+              "year.$[elem1].invoiceDate": year1Sessions[0].invoiceDate,
+              "year.$[elem2].invoiceDate": year1Sessions[1].invoiceDate,
+              "year.$[elem3].invoiceDate": year1Sessions[2].invoiceDate,
+            }
+          },
+          {
+            session,
+            arrayFilters: [
+              { "elem1.sessionName": year1Sessions[0].sessionName },
+              { "elem2.sessionName": year1Sessions[1].sessionName },
+              { "elem3.sessionName": year1Sessions[2].sessionName },
+            ]
+          }
+        );
+      }
+
+      await Promise.all(studentUpdatePromises);
     }
 
     await session.commitTransaction();
@@ -266,7 +316,6 @@ const updateCourseRelationIntoDB = async (id: string, payload: Partial<TCourseRe
     session.endSession();
   }
 };
-
 
 
 

@@ -103,33 +103,33 @@ const getAllStudentFromDB = async (query: Record<string, unknown>) => {
     processedQuery["applications.status"] = { $regex: status, $options: "i" };
   }
 
-  if (institute && term) {
-    const courseRelationIds = await CourseRelation.find({
-      institute,
-      term,
-    }).distinct("_id");
-  
-    processedQuery["applications.courseRelationId"] = {
-      $in: courseRelationIds,
-    };
-  } else if (institute) {
-    const courseRelationIds = await CourseRelation.find({
-      institute,
-    }).distinct("_id");
-  
-    processedQuery["applications.courseRelationId"] = {
-      $in: courseRelationIds,
-    };
-  } else if (term) {
-    const courseRelationIds = await CourseRelation.find({
-      term,
-    }).distinct("_id");
-  
-    processedQuery["applications.courseRelationId"] = {
-      $in: courseRelationIds,
-    };
-  }
-  
+ if (institute && term) {
+  const courseRelationIds = await CourseRelation.find({
+    institute,
+    term,
+  }).distinct("_id");
+
+  processedQuery["applications.courseRelationId"] = {
+    $in: courseRelationIds,
+  };
+} else if (institute) {
+  const courseRelationIds = await CourseRelation.find({
+    institute,
+  }).distinct("_id");
+
+  processedQuery["applications.courseRelationId"] = {
+    $in: courseRelationIds,
+  };
+} else if (term) {
+  const courseRelationIds = await CourseRelation.find({
+    term,
+  }).distinct("_id");
+
+  processedQuery["applications.courseRelationId"] = {
+    $in: courseRelationIds,
+  };
+}
+
   if (academic_year_id) {
     // Find all `term` documents with the matching academic_year_id
     const termIds = await Term.find({ academic_year_id }).distinct("_id");

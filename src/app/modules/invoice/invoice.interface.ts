@@ -18,6 +18,10 @@ export interface TInvoice {
   }[];
 
   totalAmount: number;
+  dicountType: "percentage" | "flat";
+  discountAmount: number;
+  discountMsg: string;
+  vat: number;
   status: "due" | "paid";
   createdBy: Types.ObjectId;
   courseRelationId: Types.ObjectId; 
