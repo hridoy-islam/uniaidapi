@@ -197,20 +197,25 @@ const updateCourseRelationIntoDB = async (id: string, payload: Partial<TCourseRe
       { new: true, runValidators: true, session }
     );
 
-    // Update related students and agent courses
+    // Update related students, agent courses, and agent payments (Year 1 only)
     if (payload.years) {
       // Update students
       const students = await Student.find({
-        'accounts.courseRelationId': id
+        $or: [
+          {'accounts.courseRelationId': id},
+          {'agentPayments.courseRelationId': id}
+        ]
       }).session(session);
 
       const studentUpdatePromises = students.map(async (student) => {
+        let isModified = false;
+
+        // Update accounts (can include all years)
         const accountIndex = student.accounts.findIndex(
           acc => acc.courseRelationId.toString() === id
         );
 
         if (accountIndex !== -1) {
-          // Create a safe copy of the existing years in the student's account
           const existingAccountYears = student.accounts[accountIndex].years.map(year => ({
             _id: year._id || new Types.ObjectId(),
             year: year.year,
@@ -238,7 +243,6 @@ const updateCourseRelationIntoDB = async (id: string, payload: Partial<TCourseRe
                 );
 
                 if (existingSessionIndex !== -1) {
-                  // Update the existing session
                   existingSessions[existingSessionIndex] = {
                     _id: existingSessions[existingSessionIndex]._id,
                     sessionName: newSession.sessionName || existingSessions[existingSessionIndex].sessionName,
@@ -259,7 +263,6 @@ const updateCourseRelationIntoDB = async (id: string, payload: Partial<TCourseRe
                 }
               });
             } else {
-              // If the year doesn't exist, add it
               existingAccountYears.push({
                 _id: new Types.ObjectId(),
                 year: newYear.year,
@@ -276,9 +279,103 @@ const updateCourseRelationIntoDB = async (id: string, payload: Partial<TCourseRe
           });
 
           student.accounts[accountIndex].years = existingAccountYears;
+          isModified = true;
+        }
 
+        // Update agentPayments (Year 1 only)
+        const paymentIndex = student.agentPayments.findIndex(
+          payment => payment.courseRelationId.toString() === id
+        );
+
+        if (paymentIndex !== -1) {
+          // Get only Year 1 data from payload
+          const year1Data = payload.years?.find(y => y.year === "Year 1");
           
-          await student.save({ session });
+          if (year1Data) {
+            const existingPaymentYears = student.agentPayments[paymentIndex].years.map(year => ({
+              _id: year._id || new Types.ObjectId(),
+              year: year.year,
+              sessions: year.sessions?.map(session => ({
+                _id: session._id || new Types.ObjectId(),
+                sessionName: session.sessionName,
+                invoiceDate: session.invoiceDate,
+                type: session.type,
+                rate: session.rate,
+                status: session.status 
+              })) || []
+            }));
+
+            const existingYearIndex = existingPaymentYears.findIndex(
+              y => y.year === "Year 1"
+            );
+
+            if (existingYearIndex !== -1) {
+              const existingSessions = existingPaymentYears[existingYearIndex].sessions;
+
+              year1Data.sessions?.forEach(newSession => {
+                const existingSessionIndex = existingSessions.findIndex(
+                  s => s.sessionName === newSession.sessionName
+                );
+
+                if (existingSessionIndex !== -1) {
+                  existingSessions[existingSessionIndex] = {
+                    _id: existingSessions[existingSessionIndex]._id,
+                    sessionName: newSession.sessionName || existingSessions[existingSessionIndex].sessionName,
+                    invoiceDate: newSession.invoiceDate || existingSessions[existingSessionIndex].invoiceDate,
+                    type: newSession.type || existingSessions[existingSessionIndex].type,
+                    rate: newSession.rate || existingSessions[existingSessionIndex].rate,
+                    status: newSession.status || existingSessions[existingSessionIndex].status
+                  };
+                } else {
+                  existingSessions.push({
+                    _id: new Types.ObjectId(),
+                    sessionName: newSession.sessionName,
+                    invoiceDate: newSession.invoiceDate,
+                    type: newSession.type,
+                    rate: newSession.rate,
+                    status: newSession.status
+                  });
+                }
+              });
+            } else {
+              existingPaymentYears.push({
+                _id: new Types.ObjectId(),
+                year: "Year 1",
+                sessions: year1Data.sessions?.map(session => ({
+                  _id: new Types.ObjectId(),
+                  sessionName: session.sessionName,
+                  invoiceDate: session.invoiceDate,
+                  type: session.type,
+                  rate: session.rate,
+                  status: session.status
+                })) || []
+              });
+            }
+
+            // Ensure we only have Year 1 in agentPayments
+            student.agentPayments[paymentIndex].years = existingPaymentYears.filter(y => y.year === "Year 1");
+            isModified = true;
+          }
+        }
+
+        if (isModified) {
+          try {
+            await student.save({ session });
+          } catch (error) {
+            if (error.name === 'ValidationError') {
+              console.error('Validation error when saving student:', error.message);
+              // Handle validation errors specifically for agentPayments
+              if (error.errors?.agentPayments) {
+                // Remove any non-Year 1 data that might have slipped through
+                student.agentPayments.forEach(payment => {
+                  payment.years = payment.years.filter(y => y.year === "Year 1");
+                });
+                await student.save({ session }); // Try saving again
+              }
+            } else {
+              throw error;
+            }
+          }
         }
       });
 
@@ -302,6 +399,43 @@ const updateCourseRelationIntoDB = async (id: string, payload: Partial<TCourseRe
             ]
           }
         );
+
+        // Update students' agentPayments that reference these agent courses (Year 1 only)
+        const agentCourses = await AgentCourse.find({ courseRelationId: id }).session(session);
+        
+        for (const agentCourse of agentCourses) {
+          const agentStudents = await Student.find({
+            agent: agentCourse.agentId,
+            "agentPayments.courseRelationId": agentCourse.courseRelationId
+          }).session(session);
+
+          for (const student of agentStudents) {
+            let isModified = false;
+
+            for (const payment of student.agentPayments) {
+              if (payment.courseRelationId.toString() !== agentCourse.courseRelationId.toString()) continue;
+
+              // Filter to only Year 1 sessions
+              const year1Payment = payment.years.find(y => y.year === "Year 1");
+              if (!year1Payment) continue;
+
+              for (const session of year1Payment.sessions) {
+                const updatedSession = agentCourse.year?.find(
+                  (s) => s.sessionName === session.sessionName
+                );
+
+                if (updatedSession && session.invoiceDate.toISOString() !== updatedSession.invoiceDate.toISOString()) {
+                  session.invoiceDate = updatedSession.invoiceDate;
+                  isModified = true;
+                }
+              }
+            }
+
+            if (isModified) {
+              await student.save({ session });
+            }
+          }
+        }
       }
 
       await Promise.all(studentUpdatePromises);
@@ -316,7 +450,6 @@ const updateCourseRelationIntoDB = async (id: string, payload: Partial<TCourseRe
     session.endSession();
   }
 };
-
 
 
 export const CourseRelationServices = {
