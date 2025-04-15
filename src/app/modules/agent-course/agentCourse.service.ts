@@ -6,6 +6,7 @@ import AppError from "../../errors/AppError";
 import {AgentCourseSearchableFields } from "./agentCourse.constant";
 import { TAgentCourse } from "./agentCourse.interface";
 import AgentCourse from "./agentCourse.model";
+import Student from "../student/student.model";
 
 
 
@@ -70,7 +71,6 @@ const getSingleAgentCourseFromDB = async (id: string) => {
 
 
 
-
 const updateAgentCourseIntoDB = async (id: string, payload: Partial<TAgentCourse>) => {
   const agentCourse = await AgentCourse.findById(id);
 
@@ -78,23 +78,46 @@ const updateAgentCourseIntoDB = async (id: string, payload: Partial<TAgentCourse
     throw new AppError(httpStatus.NOT_FOUND, "AgentCourse not found");
   }
 
-  // Toggle `isDeleted` status for the selected user only
-  // "const newStatus = !user.isDeleted;
-
-  // // Check if the user is a company, but only update the selected user
-  // if (user.role === "company") {
-  //   payload.isDeleted = newStatus;
-  // }
-
-  // Update only the selected user
   const result = await AgentCourse.findByIdAndUpdate(id, payload, {
     new: true,
     runValidators: true,
   });
 
+  if (!result) return null;
+
+  // Fetch matching students
+  const students = await Student.find({
+    agent: result.agentId,
+    "agentPayments.courseRelationId": result.courseRelationId,
+  });
+
+  for (const student of students) {
+    let isModified = false;
+
+    for (const payment of student.agentPayments) {
+      if (payment.courseRelationId.toString() !== result.courseRelationId.toString()) continue;
+
+      for (const year of payment.years) {
+        for (const session of year.sessions) {
+          const updatedSession = result.year?.find(
+            (s) => s.sessionName === session.sessionName
+          );
+
+          if (updatedSession && session.invoiceDate.toISOString() !== updatedSession.invoiceDate.toISOString()) {
+            session.invoiceDate = updatedSession.invoiceDate;
+            isModified = true;
+          }
+        }
+      }
+    }
+
+    if (isModified) {
+      await student.save();
+    }
+  }
+
   return result;
 };
-
 
 
 
