@@ -77,6 +77,7 @@ const getAllStudentFromDB = async (query: Record<string, unknown>) => {
     year,
     createdBy,
     session,
+    agentSearch,
     paymentStatus,
     agentid, 
     agentCourseRelationId, 
@@ -86,6 +87,9 @@ const getAllStudentFromDB = async (query: Record<string, unknown>) => {
     ...otherQueryParams
   } = query;
 
+
+
+
   // Preprocess the query parameters
   const processedQuery: Record<string, unknown> = { ...otherQueryParams };
 
@@ -94,58 +98,84 @@ const getAllStudentFromDB = async (query: Record<string, unknown>) => {
   // }
 
   if (staffId || createdBy) {
-    processedQuery["$or"] = [];
-    if (staffId) processedQuery["$or"].push({ assignStaff: staffId });
-    if (createdBy) processedQuery["$or"].push({ createdBy });
+  processedQuery["$or"] = [];
+  if (staffId) {
+    processedQuery["$or"].push({
+      assignStaff: Array.isArray(staffId)
+        ? { $in: staffId }
+        : staffId,
+    });
+  }
+  if (createdBy) {
+    processedQuery["$or"].push({
+      createdBy: Array.isArray(createdBy)
+        ? { $in: createdBy }
+        : createdBy,
+    });
+  }
+}
+
+if (status) {
+  processedQuery["applications.status"] = Array.isArray(status)
+    ? { $in: status.map(s => new RegExp(s, 'i')) }
+    : new RegExp(status as string, 'i');
+}
+
+
+
+if ((institute?.length || 0) > 0 || (term?.length || 0) > 0) {
+  const courseRelationFilter: Record<string, any> = {};
+
+  if (institute?.length > 0) {
+    courseRelationFilter.institute = { $in: institute };
   }
 
-  if (status) {
-    processedQuery["applications.status"] = { $regex: status, $options: "i" };
+  if (term?.length > 0) {
+    courseRelationFilter.term = { $in: term };
   }
 
- if (institute && term) {
-  const courseRelationIds = await CourseRelation.find({
-    institute,
-    term,
-  }).distinct("_id");
+  const courseRelationIds = await CourseRelation.find(courseRelationFilter).distinct("_id");
 
-  processedQuery["applications.courseRelationId"] = {
-    $in: courseRelationIds,
-  };
-} else if (institute) {
-  const courseRelationIds = await CourseRelation.find({
-    institute,
-  }).distinct("_id");
+  if (courseRelationIds.length > 0) {
+    processedQuery["applications"] = {
+      $elemMatch: {
+        courseRelationId: { $in: courseRelationIds },
+      },
+    };
+  } else {
+    // No matching course relations found
+    processedQuery["applications.courseRelationId"] = { $in: [] };
+  }
+}
 
-  processedQuery["applications.courseRelationId"] = {
-    $in: courseRelationIds,
-  };
-} else if (term) {
-  const courseRelationIds = await CourseRelation.find({
-    term,
-  }).distinct("_id");
 
-  processedQuery["applications.courseRelationId"] = {
-    $in: courseRelationIds,
+if (agentSearch?.length > 0) {
+  processedQuery["agent"] = {
+    $in: agentSearch.map((id) => new mongoose.Types.ObjectId(id)),
   };
 }
 
-  if (academic_year_id) {
-    // Find all `term` documents with the matching academic_year_id
-    const termIds = await Term.find({ academic_year_id }).distinct("_id");
+  if (academic_year_id?.length > 0) {
+  // Always treat academic_year_id as array
+  const termIds = await Term.find({
+    academic_year_id: { $in: academic_year_id },
+  }).distinct("_id");
 
-    // Find all `courseRelation` documents that reference these term IDs
-    const courseRelationIds = await CourseRelation.find({
-      term: { $in: termIds },
-    }).distinct("_id");
+  const courseRelationIds = await CourseRelation.find({
+    term: { $in: termIds },
+  }).distinct("_id");
 
-    // Match the `courseRelationId` in the `applications` array to the `courseRelation` IDs
-    processedQuery["applications.courseRelationId"] = {
-      $in: courseRelationIds,
-    };
-  }
+  // Only include enrolled students whose application.courseRelationId matches
+  processedQuery["applications"] = {
+    $elemMatch: {
+      courseRelationId: { $in: courseRelationIds },
+      // status: "Enrolled", // only enrolled
+    },
+  };
+}
 
 
+  //remit
 
   if (agentid || agentCourseRelationId || agentYear || agentSession || agentPaymentStatus) {
     const agentPaymentsQuery: Record<string, unknown> = {};
@@ -191,64 +221,83 @@ const getAllStudentFromDB = async (query: Record<string, unknown>) => {
   }
   
 
+  //invoice
 
-  if (applicationCourse || year || session || paymentStatus) {
-    const accountsQuery: Record<string, unknown> = {};
+if (applicationCourse || year || session || paymentStatus) {
+  const accountsQuery: Record<string, unknown> = {};
 
-    if (applicationCourse) {
-      accountsQuery["courseRelationId"] = applicationCourse; // Match courseRelationId directly
-    }
-
-    if (year || session || paymentStatus) {
-      const yearsQuery: Record<string, unknown> = {};
-
-      if (year) {
-        yearsQuery["year"] = year; // Match year inside years array
-      }
-
-      if (session || paymentStatus) {
-        const sessionsQuery: Record<string, unknown> = {};
-
-        if (session) {
-          sessionsQuery["sessionName"] = session; // Match session inside sessions array
-        }
-
-        if (paymentStatus) {
-          sessionsQuery["status"] = paymentStatus; // Match payment status inside sessions array
-        }
-
-        yearsQuery["sessions"] = { $elemMatch: sessionsQuery }; // Ensure at least one matching session
-      }
-
-      accountsQuery["years"] = { $elemMatch: yearsQuery }; // Ensure at least one matching year
-    }
-
-    processedQuery["$and"] = (processedQuery["$and"] || []).concat([
-      { accounts: { $elemMatch: accountsQuery } },
-    ]);
+  if (applicationCourse) {
+    accountsQuery["courseRelationId"] = applicationCourse;
   }
-processedQuery["applications.status"] = "Enrolled";
 
-  const StudentQuery = new QueryBuilder(
-    Student.find().populate({
+  if (year || session || paymentStatus) {
+    const yearsQuery: Record<string, unknown> = {};
+
+    if (year) {
+      yearsQuery["year"] = year;
+    }
+
+    if (session || paymentStatus) {
+      const sessionsQuery: Record<string, unknown> = {};
+
+      if (session) {
+        sessionsQuery["sessionName"] = session;
+      }
+
+      if (paymentStatus) {
+        sessionsQuery["status"] = paymentStatus;
+      }
+
+      yearsQuery["sessions"] = { $elemMatch: sessionsQuery };
+    }
+
+    accountsQuery["years"] = { $elemMatch: yearsQuery };
+  }
+
+  processedQuery["$and"] = (processedQuery["$and"] || []).concat([
+    { accounts: { $elemMatch: accountsQuery } },
+  ]);
+  
+  // ✅ Only students with at least one application with status "Enrolled"
+  processedQuery["applications"] = {
+    $elemMatch: { status: "Enrolled" },
+  };
+}
+// processedQuery["applications.status"] = "Enrolled";
+
+ const StudentQuery = new QueryBuilder(
+  Student.find()
+    .populate({
       path: "accounts.courseRelationId",
       populate: [
-        {
-          path: "institute",
-          select: "name _id",
-        },
-        {
-          path: "course",
-          select: "name _id",
-        },
-        {
-          path: "term",
-          select: "term academic_year_id _id",
-        },
+        { path: "institute", select: "name _id" },
+        { path: "course", select: "name _id" },
+        { path: "term", select: "term academic_year_id _id" },
       ],
+    })
+    .populate({
+      path: "applications.courseRelationId",
+      populate: { path: "course", select: "name " },
+    })
+    .populate({
+      path: "applications.courseRelationId",
+      populate: { path: "institute", select: "name " },
+    })
+    .populate({
+      path: "applications.courseRelationId",
+      populate: { path: "term", select: "term " },
+    })
+    .populate({
+      path: "assignStaff",
+      select: "name",
+    })
+    .populate({
+      path: "agent",
+      select: "name",
     }),
-    processedQuery
-  )
+  processedQuery
+)
+
     .search(studentSearchableFields)
     .filter()
     .sort()
