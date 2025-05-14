@@ -227,6 +227,7 @@ const getAllStudentFromDB = async (query: Record<string, unknown>) => {
       { accounts: { $elemMatch: accountsQuery } },
     ]);
   }
+processedQuery["applications.status"] = "Enrolled";
 
   const StudentQuery = new QueryBuilder(
     Student.find().populate({

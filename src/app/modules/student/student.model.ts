@@ -43,6 +43,7 @@ const ApplicationSchema = new Schema({
   status: { type: String, default: "New" },
   statusLogs: { type: [StatusLogSchema], default: [] },
   created_at: { type: Date, default: Date.now },
+  isActive:{type: Boolean, default: true}
 });
 
 // Define the schema for emergency contact
