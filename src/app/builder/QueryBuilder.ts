@@ -25,14 +25,15 @@ class QueryBuilder<T> {
   //   return this;
   // }
 
-
   search(searchableFields: string[]) {
     const searchTerm = this?.query?.searchTerm as string;
     if (searchTerm) {
-      const searchTerms = searchTerm.split(' ').filter(term => term.trim() !== ''); // Split into individual terms
-  
+      const searchTerms = searchTerm
+        .split(" ")
+        .filter((term) => term.trim() !== ""); // Split into individual terms
+
       // Create an array of conditions for each term
-      const searchConditions = searchTerms.map(term => ({
+      const searchConditions = searchTerms.map((term) => ({
         $or: searchableFields.map(
           (field) =>
             ({
@@ -40,7 +41,7 @@ class QueryBuilder<T> {
             }) as FilterQuery<T>
         ),
       }));
-  
+
       // Combine all conditions with $and to ensure all terms are matched
       if (searchConditions.length > 0) {
         this.modelQuery = this.modelQuery.find({
@@ -48,11 +49,11 @@ class QueryBuilder<T> {
         });
       }
     }
-  
+
     return this;
   }
 
-  filter(filters: { [x: string]: unknown; }) {
+  filter(filters: { [x: string]: unknown }) {
     const queryObj = { ...this.query }; // copy
 
     // Filtering
@@ -74,12 +75,18 @@ class QueryBuilder<T> {
   }
 
   paginate() {
+    const limitParam = this?.query?.limit;
+
     const page = Number(this?.query?.page) || 1;
-    const limit = Number(this?.query?.limit) || 10;
-    const skip = (page - 1) * limit;
 
-    this.modelQuery = this.modelQuery.skip(skip).limit(limit);
-
+    if (limitParam === "all") {
+      // Return all records: no limit, no skip
+      this.modelQuery = this.modelQuery.skip(0); // Optional: skip(0) for consistency
+    } else {
+      const limit = Number(limitParam) || 10;
+      const skip = (page - 1) * limit;
+      this.modelQuery = this.modelQuery.skip(skip).limit(limit);
+    }
     return this;
   }
 
@@ -91,10 +98,12 @@ class QueryBuilder<T> {
     return this;
   }
   async countTotal() {
+    const limitParam = this?.query?.limit;
     const totalQueries = this.modelQuery.getFilter();
     const total = await this.modelQuery.model.countDocuments(totalQueries);
     const page = Number(this?.query?.page) || 1;
-    const limit = Number(this?.query?.limit) || 10;
+    // const limit = Number(this?.query?.limit) || 10;
+    const limit = limitParam === "all" ? total : Number(limitParam) || 10;
     const totalPage = Math.ceil(total / limit);
 
     return {
