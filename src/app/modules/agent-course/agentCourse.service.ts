@@ -7,6 +7,7 @@ import {AgentCourseSearchableFields } from "./agentCourse.constant";
 import { TAgentCourse } from "./agentCourse.interface";
 import AgentCourse from "./agentCourse.model";
 import Student from "../student/student.model";
+import CourseRelation from "../course-relation/courseRelation.model";
 
 
 
@@ -16,6 +17,20 @@ const createAgentCourseIntoDB = async (payload: TAgentCourse) => {
       agentId: payload.agentId,
       courseRelationId: payload.courseRelationId, 
     });
+
+   const courseRelation = await CourseRelation.findById(payload.courseRelationId);
+
+    if (!courseRelation) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Invalid courseRelationId");
+    }
+
+    // Step 3: Ensure "Year 1" is present in CourseRelation.years
+    const hasYear1 = courseRelation.years?.some((year: any) => year.year === "Year 1");
+
+    if (!hasYear1) {
+      throw new AppError(httpStatus.BAD_REQUEST, `The selected course is incomplete.`);
+    }
+
 
 
     if (existingCourse) {
