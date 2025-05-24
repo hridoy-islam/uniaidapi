@@ -79,8 +79,8 @@ const getAllStudentFromDB = async (query: Record<string, unknown>) => {
     session,
     agentSearch,
     paymentStatus,
-    agentid, 
-    agentCourseRelationId, 
+    agentid,
+    agentCourseRelationId,
     agentYear,
     agentSession,
     agentPaymentStatus,
@@ -88,215 +88,239 @@ const getAllStudentFromDB = async (query: Record<string, unknown>) => {
   } = query;
 
 
-
-
-  // Preprocess the query parameters
+  // this is for student search filter
   const processedQuery: Record<string, unknown> = { ...otherQueryParams };
 
-  // if (staffId) {
-  //   processedQuery['assignStaff'] = staffId;
-  // }
-
   if (staffId || createdBy) {
-  processedQuery["$or"] = [];
-  if (staffId) {
-    processedQuery["$or"].push({
-      assignStaff: Array.isArray(staffId)
-        ? { $in: staffId }
-        : staffId,
-    });
-  }
-  if (createdBy) {
-    processedQuery["$or"].push({
-      createdBy: Array.isArray(createdBy)
-        ? { $in: createdBy }
-        : createdBy,
-    });
-  }
-}
-
-if (status) {
-  processedQuery["applications.status"] = Array.isArray(status)
-    ? { $in: status.map(s => new RegExp(s, 'i')) }
-    : new RegExp(status as string, 'i');
-}
-
-
-
-if ((institute?.length || 0) > 0 || (term?.length || 0) > 0) {
-  const courseRelationFilter: Record<string, any> = {};
-
-  if (institute?.length > 0) {
-    courseRelationFilter.institute = { $in: institute };
+    processedQuery["$or"] = [];
+    if (staffId) {
+      processedQuery["$or"].push({
+        assignStaff: Array.isArray(staffId)
+          ? {
+              $in: staffId.map((id: string) => new mongoose.Types.ObjectId(id)),
+            }
+          : new mongoose.Types.ObjectId(staffId),
+      });
+    }
+    if (createdBy) {
+      processedQuery["$or"].push({
+        createdBy: Array.isArray(createdBy)
+          ? {
+              $in: createdBy.map(
+                (id: string) => new mongoose.Types.ObjectId(id)
+              ),
+            }
+          : new mongoose.Types.ObjectId(createdBy),
+      });
+    }
   }
 
-  if (term?.length > 0) {
-    courseRelationFilter.term = { $in: term };
+  // Status filter (case-insensitive regex)
+  if (status) {
+    processedQuery["applications.status"] = Array.isArray(status)
+      ? { $in: status.map((s: string) => new RegExp(s, "i")) }
+      : new RegExp(status as string, "i");
   }
 
-  const courseRelationIds = await CourseRelation.find(courseRelationFilter).distinct("_id");
+  let courseRelationIdSet: Set<string> | null = null;
 
-  if (courseRelationIds.length > 0) {
-    processedQuery["applications"] = {
-      $elemMatch: {
-        courseRelationId: { $in: courseRelationIds },
-      },
+  if ((institute?.length || 0) > 0 || (term?.length || 0) > 0) {
+    const courseRelationFilter: Record<string, any> = {};
+
+    if (institute?.length > 0) {
+      courseRelationFilter.institute = {
+        $in: institute.map((id) => new mongoose.Types.ObjectId(id)),
+      };
+    }
+
+    if (term?.length > 0) {
+      courseRelationFilter.term = {
+        $in: term.map((id) => new mongoose.Types.ObjectId(id)),
+      };
+    }
+
+    const crIds =
+      await CourseRelation.find(courseRelationFilter).distinct("_id");
+    courseRelationIdSet = new Set(crIds.map((id) => id.toString()));
+  }
+
+  // Handle agentSearch filter
+  if (agentSearch?.length > 0) {
+    processedQuery["agent"] = {
+      $in: agentSearch.map((id: string) => new mongoose.Types.ObjectId(id)),
     };
-  } else {
-    // No matching course relations found
-    processedQuery["applications.courseRelationId"] = { $in: [] };
   }
-}
-
-
-if (agentSearch?.length > 0) {
-  processedQuery["agent"] = {
-    $in: agentSearch.map((id) => new mongoose.Types.ObjectId(id)),
-  };
-}
 
   if (academic_year_id?.length > 0) {
-  // Always treat academic_year_id as array
-  const termIds = await Term.find({
-    academic_year_id: { $in: academic_year_id },
-  }).distinct("_id");
+    const termIds = await Term.find({
+      academic_year_id: {
+        $in: academic_year_id.map((id) => new mongoose.Types.ObjectId(id)),
+      },
+    }).distinct("_id");
 
-  const courseRelationIds = await CourseRelation.find({
-    term: { $in: termIds },
-  }).distinct("_id");
+    const crIds = await CourseRelation.find({
+      term: { $in: termIds.map((id) => new mongoose.Types.ObjectId(id)) },
+    }).distinct("_id");
 
-  // Only include enrolled students whose application.courseRelationId matches
-  processedQuery["applications"] = {
-    $elemMatch: {
-      courseRelationId: { $in: courseRelationIds },
-      // status: "Enrolled", // only enrolled
-    },
-  };
-}
+    const academicCRSet = new Set(crIds.map((id) => id.toString()));
 
+    if (courseRelationIdSet) {
+      // Intersect with previous courseRelation IDs
+      courseRelationIdSet = new Set(
+        [...courseRelationIdSet].filter((id) => academicCRSet.has(id))
+      );
+    } else {
+      courseRelationIdSet = academicCRSet;
+    }
+  }
+
+  // Now apply the final courseRelation filter
+  if (courseRelationIdSet) {
+    const courseRelationIds = Array.from(courseRelationIdSet).map(
+      (id) => new mongoose.Types.ObjectId(id)
+    );
+
+    if (courseRelationIds.length > 0) {
+      processedQuery["applications"] = {
+        $elemMatch: {
+          courseRelationId: { $in: courseRelationIds },
+        },
+      };
+    } else {
+      processedQuery["applications.courseRelationId"] = { $in: [] };
+    }
+  }
+
+  
 
   //remit
 
-  if (agentid || agentCourseRelationId || agentYear || agentSession || agentPaymentStatus) {
+  if (
+    agentid ||
+    agentCourseRelationId ||
+    agentYear ||
+    agentSession ||
+    agentPaymentStatus
+  ) {
     const agentPaymentsQuery: Record<string, unknown> = {};
-  
 
     // Convert string IDs to ObjectId if needed (match your DB schema)
     if (agentid) {
       agentPaymentsQuery["agent"] = new mongoose.Types.ObjectId(agentid);
     }
-  
+
     if (agentCourseRelationId) {
-      agentPaymentsQuery["courseRelationId"] = new mongoose.Types.ObjectId(agentCourseRelationId);
+      agentPaymentsQuery["courseRelationId"] = new mongoose.Types.ObjectId(
+        agentCourseRelationId
+      );
     }
-  
+
     if (agentYear || agentSession || agentPaymentStatus) {
       const agentYearsQuery: Record<string, unknown> = {};
-  
+
       if (agentYear) {
         agentYearsQuery["year"] = agentYear;
       }
-  
+
       if (agentSession || agentPaymentStatus) {
         const agentSessionsQuery: Record<string, unknown> = {};
-  
+
         if (agentSession) {
           agentSessionsQuery["sessionName"] = agentSession;
         }
-  
+
         if (agentPaymentStatus) {
           agentSessionsQuery["status"] = agentPaymentStatus;
         }
-  
+
         agentYearsQuery["sessions"] = { $elemMatch: agentSessionsQuery };
       }
-  
+
       agentPaymentsQuery["years"] = { $elemMatch: agentYearsQuery };
     }
-  
+
     // Now, use $elemMatch directly without wrapping in $and
     processedQuery["agentPayments"] = {
       $elemMatch: agentPaymentsQuery,
     };
   }
-  
 
   //invoice
 
-if (applicationCourse || year || session || paymentStatus) {
-  const accountsQuery: Record<string, unknown> = {};
+  if (applicationCourse || year || session || paymentStatus) {
+    const accountsQuery: Record<string, unknown> = {};
 
-  if (applicationCourse) {
-    accountsQuery["courseRelationId"] = applicationCourse;
-  }
-
-  if (year || session || paymentStatus) {
-    const yearsQuery: Record<string, unknown> = {};
-
-    if (year) {
-      yearsQuery["year"] = year;
+    if (applicationCourse) {
+      accountsQuery["courseRelationId"] = applicationCourse;
     }
 
-    if (session || paymentStatus) {
-      const sessionsQuery: Record<string, unknown> = {};
+    if (year || session || paymentStatus) {
+      const yearsQuery: Record<string, unknown> = {};
 
-      if (session) {
-        sessionsQuery["sessionName"] = session;
+      if (year) {
+        yearsQuery["year"] = year;
       }
 
-      if (paymentStatus) {
-        sessionsQuery["status"] = paymentStatus;
+      if (session || paymentStatus) {
+        const sessionsQuery: Record<string, unknown> = {};
+
+        if (session) {
+          sessionsQuery["sessionName"] = session;
+        }
+
+        if (paymentStatus) {
+          sessionsQuery["status"] = paymentStatus;
+        }
+
+        yearsQuery["sessions"] = { $elemMatch: sessionsQuery };
       }
 
-      yearsQuery["sessions"] = { $elemMatch: sessionsQuery };
+      accountsQuery["years"] = { $elemMatch: yearsQuery };
     }
 
-    accountsQuery["years"] = { $elemMatch: yearsQuery };
+    processedQuery["$and"] = (processedQuery["$and"] || []).concat([
+      { accounts: { $elemMatch: accountsQuery } },
+    ]);
+
+    // ✅ Only students with at least one application with status "Enrolled"
+    processedQuery["applications"] = {
+      $elemMatch: { status: "Enrolled" },
+    };
   }
+  // processedQuery["applications.status"] = "Enrolled";
 
-  processedQuery["$and"] = (processedQuery["$and"] || []).concat([
-    { accounts: { $elemMatch: accountsQuery } },
-  ]);
-  
-  // ✅ Only students with at least one application with status "Enrolled"
-  processedQuery["applications"] = {
-    $elemMatch: { status: "Enrolled" },
-  };
-}
-// processedQuery["applications.status"] = "Enrolled";
-
- const StudentQuery = new QueryBuilder(
-  Student.find()
-    .populate({
-      path: "accounts.courseRelationId",
-      populate: [
-        { path: "institute", select: "name _id" },
-        { path: "course", select: "name _id" },
-        { path: "term", select: "term academic_year_id _id" },
-      ],
-    })
-    .populate({
-      path: "applications.courseRelationId",
-      populate: { path: "course", select: "name " },
-    })
-    .populate({
-      path: "applications.courseRelationId",
-      populate: { path: "institute", select: "name " },
-    })
-    .populate({
-      path: "applications.courseRelationId",
-      populate: { path: "term", select: "term " },
-    })
-    .populate({
-      path: "assignStaff",
-      select: "name",
-    })
-    .populate({
-      path: "agent",
-      select: "name",
-    }),
-  processedQuery
-)
+  const StudentQuery = new QueryBuilder(
+    Student.find()
+      .populate({
+        path: "accounts.courseRelationId",
+        populate: [
+          { path: "institute", select: "name _id" },
+          { path: "course", select: "name _id" },
+          { path: "term", select: "term academic_year_id _id" },
+        ],
+      })
+      .populate({
+        path: "applications.courseRelationId",
+        populate: { path: "course", select: "name " },
+      })
+      .populate({
+        path: "applications.courseRelationId",
+        populate: { path: "institute", select: "name " },
+      })
+      .populate({
+        path: "applications.courseRelationId",
+        populate: { path: "term", select: "term " },
+      })
+      .populate({
+        path: "assignStaff",
+        select: "name",
+      })
+      .populate({
+        path: "agent",
+        select: "name",
+      }),
+    processedQuery
+  )
 
     .search(studentSearchableFields)
     .filter()
@@ -362,7 +386,8 @@ const getSingleStudentFromDB = async (id: string) => {
         { path: "institute", select: "name" },
         { path: "term", select: "term" },
       ],
-    }).populate("agentPayments.years.sessions")
+    })
+    .populate("agentPayments.years.sessions")
     .populate({
       path: "agentPayments.courseRelationId",
       populate: [
@@ -401,42 +426,40 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
 
     // Prevent duplicate courseRelationId in applications
     if (payload.applications) {
-      const newApplications = Array.isArray(payload.applications) 
-        ? payload.applications 
+      const newApplications = Array.isArray(payload.applications)
+        ? payload.applications
         : [payload.applications];
 
       for (const newApp of newApplications) {
         if (newApp.courseRelationId) {
           // Check if courseRelationId already exists in student's applications
-          const duplicateExists = student.applications.some(app => 
-            app.courseRelationId?.equals(newApp.courseRelationId)
+          const duplicateExists = student.applications.some(
+            (app) => app.courseRelationId?.equals(newApp.courseRelationId)
           );
 
           if (duplicateExists) {
             // Get course details for better error message
-            const courseRelation = await CourseRelation.findById(newApp.courseRelationId)
-              .populate('course')
+            const courseRelation = await CourseRelation.findById(
+              newApp.courseRelationId
+            )
+              .populate("course")
               .session(session);
-            
-            const courseName = courseRelation?.course?.name || 'Unknown Course';
-            throw new AppError(
-              httpStatus.BAD_REQUEST, 
-              `Duplicate Application`
-            );
+
+            const courseName = courseRelation?.course?.name || "Unknown Course";
+            throw new AppError(httpStatus.BAD_REQUEST, `Duplicate Application`);
           }
         }
       }
     }
 
-    const result = await Student.findByIdAndUpdate(
-      id, 
-      payload, 
-      { new: true, runValidators: true, session }
-    );
+    const result = await Student.findByIdAndUpdate(id, payload, {
+      new: true,
+      runValidators: true,
+      session,
+    });
 
     await session.commitTransaction();
     return result;
-
   } catch (error) {
     await session.abortTransaction();
     throw error;
@@ -444,7 +467,6 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
     session.endSession();
   }
 };
-
 
 const updateStudentApplicationIntoDB = async (
   id: string,
@@ -463,17 +485,20 @@ const updateStudentApplicationIntoDB = async (
     // 1. Find the student and application
     const student = await Student.findById(id).session(session);
     if (!student) {
-      throw new AppError(httpStatus.NOT_FOUND, 'Student not found');
+      throw new AppError(httpStatus.NOT_FOUND, "Student not found");
     }
 
-    const application = student.applications.find(app => app._id.equals(appId));
+    const application = student.applications.find((app) =>
+      app._id.equals(appId)
+    );
     if (!application) {
-      throw new AppError(httpStatus.NOT_FOUND, 'Application not found');
+      throw new AppError(httpStatus.NOT_FOUND, "Application not found");
     }
 
     // 2. Handle status log according to your schema requirements
     const previousStatus = application.status || null;
-    const isInitialStatus = !application.statusLogs || application.statusLogs.length === 0;
+    const isInitialStatus =
+      !application.statusLogs || application.statusLogs.length === 0;
 
     const statusLog: any = {
       prev_status: previousStatus,
@@ -494,67 +519,85 @@ const updateStudentApplicationIntoDB = async (
     application.statusLogs = [...(application.statusLogs || []), statusLog];
 
     // 3. Handle enrollment logic if status is 'Enrolled'
-    if (newStatus === 'Enrolled') {
+    if (newStatus === "Enrolled") {
       const courseRelationId = application.courseRelationId;
 
       // Validation check for "Year 1" in course relation
       const courseRelation = await CourseRelation.findById(courseRelationId)
-        .populate('institute')
-        .populate('course')
-        .populate('term')
+        .populate("institute")
+        .populate("course")
+        .populate("term")
         .session(session);
-      
+
       if (!courseRelation) {
-        throw new AppError(httpStatus.NOT_FOUND, 'Course not found');
+        throw new AppError(httpStatus.NOT_FOUND, "Course not found");
       }
 
-      const hasYear1 = courseRelation.years.some(year => year.year === "Year 1");
+      const hasYear1 = courseRelation.years.some(
+        (year) => year.year === "Year 1"
+      );
       if (!hasYear1) {
-        throw new AppError(httpStatus.BAD_REQUEST, 'Course relation must have at least Year 1');
+        throw new AppError(
+          httpStatus.BAD_REQUEST,
+          "Course relation must have at least Year 1"
+        );
       }
 
       // Proceed with the rest of the logic
       if (!student.agent) {
-        throw new AppError(httpStatus.BAD_REQUEST, 'Student has no assigned agent');
+        throw new AppError(
+          httpStatus.BAD_REQUEST,
+          "Student has no assigned agent"
+        );
       }
 
       const agentCourse = await AgentCourse.findOne({
         agentId: student.agent,
         courseRelationId: courseRelationId,
-        status: 1
+        status: 1,
       }).session(session);
 
       if (!agentCourse) {
-        throw new AppError(httpStatus.BAD_REQUEST, 'Agent is not assigned to this course');
+        throw new AppError(
+          httpStatus.BAD_REQUEST,
+          "Agent is not assigned to this course"
+        );
       }
 
-      if (student.accounts?.some(acc => acc.courseRelationId.equals(courseRelationId))) {
-        throw new AppError(httpStatus.BAD_REQUEST, 'Student already has this course in accounts');
+      if (
+        student.accounts?.some((acc) =>
+          acc.courseRelationId.equals(courseRelationId)
+        )
+      ) {
+        throw new AppError(
+          httpStatus.BAD_REQUEST,
+          "Student already has this course in accounts"
+        );
       }
 
       // Create accounts entry
       const accountsData = {
         courseRelationId: courseRelationId,
-        years: courseRelation.years.map(year => ({
+        years: courseRelation.years.map((year) => ({
           year: year.year,
-          sessions: year.sessions.map(session => ({
+          sessions: year.sessions.map((session) => ({
             sessionName: session.sessionName,
             invoiceDate: session.invoiceDate,
-            status: 'due'
-          }))
-        }))
+            status: "due",
+          })),
+        })),
       };
 
       student.accounts = student.accounts || [];
       student.accounts.push(accountsData);
 
       // Handle agent payments - Find Year 1 data
-      const year1 = courseRelation.years.find(y => y.year === "Year 1");
+      const year1 = courseRelation.years.find((y) => y.year === "Year 1");
       if (year1) {
         student.agentPayments = student.agentPayments || [];
-        
-        const courseExistsInPayments = student.agentPayments.some(
-          payment => payment.courseRelationId._id.equals(courseRelationId)
+
+        const courseExistsInPayments = student.agentPayments.some((payment) =>
+          payment.courseRelationId._id.equals(courseRelationId)
         );
 
         if (!courseExistsInPayments) {
@@ -572,16 +615,18 @@ const updateStudentApplicationIntoDB = async (
               years: courseRelation.years,
             },
             agent: student.agent,
-            years: [{
-              year: "Year 1",
-              sessions: year1.sessions.map(session => ({
-                sessionName: session.sessionName,
-                invoiceDate: session.invoiceDate,
-                status: "due",
-                type: session.type,
-                rate: session.rate
-              }))
-            }]
+            years: [
+              {
+                year: "Year 1",
+                sessions: year1.sessions.map((session) => ({
+                  sessionName: session.sessionName,
+                  invoiceDate: session.invoiceDate,
+                  status: "due",
+                  type: session.type,
+                  rate: session.rate,
+                })),
+              },
+            ],
           };
           student.agentPayments.push(agentPaymentData);
         }
@@ -596,21 +641,18 @@ const updateStudentApplicationIntoDB = async (
       applicationId: application._id,
       status: application.status,
       prevStatus: previousStatus,
-      ...(newStatus === 'Enrolled' && { 
+      ...(newStatus === "Enrolled" && {
         enrolledCourse: application.courseRelationId,
         accounts: student.accounts,
-        agentPayments: student.agentPayments 
-      })
+        agentPayments: student.agentPayments,
+      }),
     };
-
   } catch (error) {
     await session.abortTransaction();
     await session.endSession();
     throw error;
   }
 };
-
-
 
 export const StudentServices = {
   getAllStudentFromDB,
