@@ -8,7 +8,7 @@ import config from "../../config";
 
 const login = catchAsync(async (req, res) => {
   const result = await AuthServices.checkLogin(req.body, req);
-  const { accessToken, refreshToken } = result;
+  const { accessToken, refreshToken, privileges } = result;
 
   res.cookie("refreshToken", refreshToken, {
     secure: config.NODE_ENV === "production",
@@ -22,14 +22,14 @@ const login = catchAsync(async (req, res) => {
     message: "Logged In Successfully",
     data: {
       accessToken,
-
+      privileges,
     },
   });
 });
 
 const refreshToken = catchAsync(async (req, res) => {
   const refreshToken = req.cookies.refreshToken;
-  
+
   if (!refreshToken) {
     throw new Error("Invalid token");
   }
@@ -42,7 +42,6 @@ const refreshToken = catchAsync(async (req, res) => {
     data: result,
   });
 });
-
 
 const googleLoginController = catchAsync(async (req, res) => {
   const result = await AuthServices.googleLogin(req.body);
@@ -57,9 +56,6 @@ const googleLoginController = catchAsync(async (req, res) => {
     },
   });
 });
-
-
-
 
 const createUser = catchAsync(async (req, res) => {
   const result = await AuthServices.createUserIntoDB(req.body);
@@ -131,8 +127,6 @@ const emailVerifySendOtp = catchAsync(async (req, res) => {
   });
 });
 
-
-
 export const AuthControllers = {
   login,
   createUser,
@@ -142,5 +136,5 @@ export const AuthControllers = {
   validateReset,
   verifyEmail,
   emailVerifySendOtp,
-  refreshToken
+  refreshToken,
 };

@@ -110,6 +110,10 @@ const userSchema = new Schema(
           type: Boolean,
           default: false,
         },
+        remit: {
+          type: Boolean,
+          default: false,
+        },
         staffs: {
           type: Boolean,
           default: false,

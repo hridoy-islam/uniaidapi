@@ -21,30 +21,29 @@ import { USER_ROLE } from "./user.constant";
 //   refreshToken?:string
 // }
 
-
 export interface TUser {
   _id: Types.ObjectId;
   name: string;
   email: string;
   password: string;
   phone: string;
-  contact: string; 
+  contact: string;
   location: string;
-  role: "admin" | "agent" | "staff" 
+  role: "admin" | "agent" | "staff";
   organization: string;
-  nominatedStaffs: Types.ObjectId[]; 
-  status: 0 | 1; 
-  isDeleted:boolean;
+  nominatedStaffs: Types.ObjectId[];
+  status: 0 | 1;
+  isDeleted: boolean;
   contactPerson?: string;
-  location2?:string;
+  location2?: string;
   city?: string;
-  state?:string;
-  postCode?:string;
-  country?:string;
-  imgUrl?:string;
+  state?: string;
+  postCode?: string;
+  country?: string;
+  imgUrl?: string;
   sortCode?: string;
- accountNo?: string;
- beneficiary?:string;
+  accountNo?: string;
+  beneficiary?: string;
   privileges: {
     management: {
       course: boolean;
@@ -55,6 +54,7 @@ export interface TUser {
       emails: boolean;
       drafts: boolean;
       invoices: boolean;
+      remit: boolean;
       staffs: boolean;
       agent: boolean;
       bank: boolean;
@@ -73,7 +73,6 @@ export interface TUser {
     };
   };
 }
-
 
 export interface UserModel extends Model<TUser> {
   //instance methods for checking if the user exist
