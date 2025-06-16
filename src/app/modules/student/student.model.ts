@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document } from "mongoose";
 import { TStudent } from "./student.interface";
-import { AgentCourse } from "../agent-course/agentCourse.model";
+
 // Define the Session Schema
 const SessionSchema = new Schema({
   id: { type: String },

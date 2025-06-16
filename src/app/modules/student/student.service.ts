@@ -13,22 +13,17 @@ import Term from "../term/term.model";
 import AgentCourse from "../agent-course/agentCourse.model";
 
 const generateRefId = async (): Promise<string> => {
-  // Get the current date in YYYYMMDD format
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const date = String(now.getDate()).padStart(2, "0");
-  const currentDate = `STD${year}${month}${date}`;
+  const year = new Date().getFullYear();
+  const currentDate = `STD${year}`;
 
   const lastStudent = await Student.findOne({
     refId: { $regex: `^${currentDate}` },
   })
-    .sort({ refId: -1 }) // Sort in descending order to get the latest refId
+    .sort({ refId: -1 })
     .lean();
 
   let newRefNumber = 1;
-  if (lastStudent && lastStudent.refId) {
-    // Extract the numeric part of the refId and increment it
+  if (lastStudent?.refId) {
     const lastNumber = parseInt(
       lastStudent.refId.slice(currentDate.length) || "0",
       10
@@ -37,35 +32,8 @@ const generateRefId = async (): Promise<string> => {
   }
 
   const formattedRefNumber = String(newRefNumber).padStart(4, "0");
-  const generatedRefId = `${currentDate}${formattedRefNumber}`;
-
-  return generatedRefId;
+  return `${currentDate}${formattedRefNumber}`;
 };
-
-
-// const generateRefId = async (): Promise<string> => {
-//   const year = new Date().getFullYear();
-//   const currentDate = `STD${year}`;
-
-//   const lastStudent = await Student.findOne({
-//     refId: { $regex: `^${currentDate}` },
-//   })
-//     .sort({ refId: -1 })
-//     .lean();
-
-//   let newRefNumber = 1;
-//   if (lastStudent?.refId) {
-//     const lastNumber = parseInt(
-//       lastStudent.refId.slice(currentDate.length) || "0",
-//       10
-//     );
-//     newRefNumber = lastNumber + 1;
-//   }
-
-//   const formattedRefNumber = String(newRefNumber).padStart(4, "0");
-//   return `${currentDate}${formattedRefNumber}`;
-// };
-
 
 const createStudentIntoDB = async (payload: TStudent) => {
   try {
@@ -111,7 +79,6 @@ const getAllStudentFromDB = async (query: Record<string, unknown>) => {
     agentPaymentStatus,
     ...otherQueryParams
   } = query;
-
 
   // this is for student search filter
   const processedQuery: Record<string, unknown> = { ...otherQueryParams };
@@ -215,8 +182,6 @@ const getAllStudentFromDB = async (query: Record<string, unknown>) => {
       processedQuery["applications.courseRelationId"] = { $in: [] };
     }
   }
-
-  
 
   //remit
 
@@ -442,9 +407,6 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
         throw new AppError(httpStatus.NOT_FOUND, "Agent not found");
       }
 
-      
-      
-
       if (agent.email === "m.bhuiyan@lcc.ac.uk") {
         payload.assignStaff = [student.createdBy];
       } else {
@@ -459,16 +421,16 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
         : [payload.applications];
 
       for (const newApp of newApplications) {
-        if (newApp.courseRelationId) {
+        if (newApp?.courseRelationId) {
           // Check if courseRelationId already exists in student's applications
           const duplicateExists = student.applications.some(
-            (app) => app.courseRelationId?.equals(newApp.courseRelationId)
+            (app) => app?.courseRelationId?.equals(newApp?.courseRelationId)
           );
 
           if (duplicateExists) {
             // Get course details for better error message
             const courseRelation = await CourseRelation.findById(
-              newApp.courseRelationId
+              newApp?.courseRelationId
             )
               .populate("course")
               .session(session);
@@ -479,12 +441,13 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
         }
       }
     }
-
+    
+    //code update agentPayment
     if (
       payload.agent &&
       student.agent.toString() !== payload.agent.toString()
     ) {
-      const payment = student.agentPayments?.[0];
+      const payment = student?.agentPayments?.[0];
       if (payment && payment.courseRelationId) {
         const assigned = await AgentCourse.findOne({
           agentId: payload.agent,
@@ -501,7 +464,7 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
 
         // Update agent in the single agentPayment
         payment.agent = payload.agent;
-        payload.agentPayments = [payment];
+        payload?.agentPayments = [payment];
       }
     }
 
