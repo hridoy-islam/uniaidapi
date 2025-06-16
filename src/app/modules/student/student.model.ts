@@ -191,26 +191,6 @@ const StudentSchema = new Schema<TStudent>(
   }
 );
 
-StudentSchema.pre("save", function (next) {
-  const student = this;
-
-  // Only run this logic if the agent field has been modified
-  if (student.isModified("agent")) {
-    const newAgentId = student.agent;
-
-    // Check if agentPayments has one item
-    if (student.agentPayments && student.agentPayments.length === 1) {
-      const payment = student.agentPayments[0]; // The single payment item
-      payment.agent = newAgentId; // Update the agent field of the payment
-      payment.markModified("agent"); // Ensure the agent field is marked as modified
-    }
-
-    // If agentPayments was modified, mark the whole array as modified
-    student.markModified("agentPayments");
-  }
-
-  next();
-});
 
 // Pre-save hook to populate accounts based on courseRelationId
 StudentSchema.pre<TStudent>("save", async function (next) {
