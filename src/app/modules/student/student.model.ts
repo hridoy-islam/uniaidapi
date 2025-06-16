@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document } from "mongoose";
 import { TStudent } from "./student.interface";
-
+import { AgentCourse } from "../agent-course/agentCourse.model";
 // Define the Session Schema
 const SessionSchema = new Schema({
   id: { type: String },
@@ -43,7 +43,7 @@ const ApplicationSchema = new Schema({
   status: { type: String, default: "New" },
   statusLogs: { type: [StatusLogSchema], default: [] },
   created_at: { type: Date, default: Date.now },
-  isActive:{type: Boolean, default: true}
+  isActive: { type: Boolean, default: true },
 });
 
 // Define the schema for emergency contact
@@ -90,12 +90,12 @@ const WorkExperienceSchema = new Schema({
 
 const AgentPaymentSessionSchema = new Schema({
   id: { type: String },
-  sessionName: { type: String ,require: true},
-  invoiceDate: { type: Date ,require: true},
-  status: { 
-    type: String, 
-    enum: ["due", "available", "paid"], 
-    default: "due" 
+  sessionName: { type: String, require: true },
+  invoiceDate: { type: Date, require: true },
+  status: {
+    type: String,
+    enum: ["due", "available", "paid"],
+    default: "due",
   },
   // amount: { type: Number, default: 0 } // Added amount field for commission tracking
 });
@@ -103,7 +103,7 @@ const AgentPaymentSessionSchema = new Schema({
 // Add Agent Payment Year Schema (only for Year 1)
 const AgentPaymentYearSchema = new Schema({
   year: { type: String, default: "Year 1" }, // Fixed to Year 1
-  sessions: { type: [AgentPaymentSessionSchema], default: [] }
+  sessions: { type: [AgentPaymentSessionSchema], default: [] },
 });
 
 // Add Agent Payment Schema
@@ -111,16 +111,15 @@ const AgentPaymentSchema = new Schema({
   courseRelationId: {
     type: Schema.Types.ObjectId,
     ref: "CourseRelation",
-    required: true
+    required: true,
   },
   agent: {
     type: Schema.Types.ObjectId,
     ref: "User",
-    required: true
+    required: true,
   },
-  years: { type: [AgentPaymentYearSchema], default: [] } // Will only contain Year 1
+  years: { type: [AgentPaymentYearSchema], default: [] }, // Will only contain Year 1
 });
-
 
 // Define the schema for student
 const StudentSchema = new Schema<TStudent>(
@@ -185,13 +184,33 @@ const StudentSchema = new Schema<TStudent>(
     assignStaff: [{ type: Schema.Types.ObjectId, ref: "User", default: [] }],
     englishLanguageExam: { type: [EnglishLanguageExamSchema], default: [] },
     accounts: { type: [AccountSchema], default: [] }, // Updated to use AccountSchema
-    agentPayments: { type: [AgentPaymentSchema], default: [] }
-
+    agentPayments: { type: [AgentPaymentSchema], default: [] },
   },
   {
     timestamps: true,
   }
 );
+
+StudentSchema.pre("save", function (next) {
+  const student = this;
+
+  // Only run this logic if the agent field has been modified
+  if (student.isModified("agent")) {
+    const newAgentId = student.agent;
+
+    // Check if agentPayments has one item
+    if (student.agentPayments && student.agentPayments.length === 1) {
+      const payment = student.agentPayments[0]; // The single payment item
+      payment.agent = newAgentId; // Update the agent field of the payment
+      payment.markModified("agent"); // Ensure the agent field is marked as modified
+    }
+
+    // If agentPayments was modified, mark the whole array as modified
+    student.markModified("agentPayments");
+  }
+
+  next();
+});
 
 // Pre-save hook to populate accounts based on courseRelationId
 StudentSchema.pre<TStudent>("save", async function (next) {
@@ -240,23 +259,27 @@ StudentSchema.pre<TStudent>("save", async function (next) {
 
       // 2. Populate agentPayments if student has an agent
       if (this.agent) {
-        const year1 = courseRelation.years.find(y => y.year === "Year 1");
-        
+        const year1 = courseRelation.years.find((y) => y.year === "Year 1");
+
         if (year1) {
-          this.agentPayments = [{
-            courseRelationId: courseRelation._id,
-            agent: this.agent,
-            years: [{
-              year: "Year 1",
-              sessions: year1.sessions.map(session => ({
-                id: session.id,
-                name: session.sessionName,
-                invoiceDate: session.invoiceDate,
-                status: "due",
-                // amount: calculateAgentCommission(session) // Implement this function
-              }))
-            }]
-          }];
+          this.agentPayments = [
+            {
+              courseRelationId: courseRelation._id,
+              agent: this.agent,
+              years: [
+                {
+                  year: "Year 1",
+                  sessions: year1.sessions.map((session) => ({
+                    id: session.id,
+                    name: session.sessionName,
+                    invoiceDate: session.invoiceDate,
+                    status: "due",
+                    // amount: calculateAgentCommission(session) // Implement this function
+                  })),
+                },
+              ],
+            },
+          ];
         }
       }
     }
@@ -265,12 +288,11 @@ StudentSchema.pre<TStudent>("save", async function (next) {
 });
 
 // Add validation to ensure agentPayments only contains Year 1
-StudentSchema.path('agentPayments').validate(function (payments) {
-  return payments.every(payment => 
-    payment.years.every(year => year.year === "Year 1")
+StudentSchema.path("agentPayments").validate(function (payments) {
+  return payments.every((payment) =>
+    payment.years.every((year) => year.year === "Year 1")
   );
-}, 'Agent payments can only be for Year 1');
-
+}, "Agent payments can only be for Year 1");
 
 // Apply the type at the model level
 const Student = mongoose.model<TStudent>("Student", StudentSchema);

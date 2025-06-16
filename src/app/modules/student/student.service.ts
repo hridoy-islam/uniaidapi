@@ -42,6 +42,31 @@ const generateRefId = async (): Promise<string> => {
   return generatedRefId;
 };
 
+
+// const generateRefId = async (): Promise<string> => {
+//   const year = new Date().getFullYear();
+//   const currentDate = `STD${year}`;
+
+//   const lastStudent = await Student.findOne({
+//     refId: { $regex: `^${currentDate}` },
+//   })
+//     .sort({ refId: -1 })
+//     .lean();
+
+//   let newRefNumber = 1;
+//   if (lastStudent?.refId) {
+//     const lastNumber = parseInt(
+//       lastStudent.refId.slice(currentDate.length) || "0",
+//       10
+//     );
+//     newRefNumber = lastNumber + 1;
+//   }
+
+//   const formattedRefNumber = String(newRefNumber).padStart(4, "0");
+//   return `${currentDate}${formattedRefNumber}`;
+// };
+
+
 const createStudentIntoDB = async (payload: TStudent) => {
   try {
     payload.refId = await generateRefId();
@@ -417,6 +442,9 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
         throw new AppError(httpStatus.NOT_FOUND, "Agent not found");
       }
 
+      
+      
+
       if (agent.email === "m.bhuiyan@lcc.ac.uk") {
         payload.assignStaff = [student.createdBy];
       } else {
@@ -449,6 +477,31 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
             throw new AppError(httpStatus.BAD_REQUEST, `Duplicate Application`);
           }
         }
+      }
+    }
+
+    if (
+      payload.agent &&
+      student.agent.toString() !== payload.agent.toString()
+    ) {
+      const payment = student.agentPayments?.[0];
+      if (payment && payment.courseRelationId) {
+        const assigned = await AgentCourse.findOne({
+          agentId: payload.agent,
+          courseRelationId: payment.courseRelationId,
+          status: 1,
+        }).session(session);
+
+        if (!assigned) {
+          throw new AppError(
+            httpStatus.BAD_REQUEST,
+            `Please check new agent's courses from agent profile.`
+          );
+        }
+
+        // Update agent in the single agentPayment
+        payment.agent = payload.agent;
+        payload.agentPayments = [payment];
       }
     }
 

@@ -22,7 +22,7 @@ const invoiceSchema = new Schema(
 
     totalAmount: { type: Number, required: true },
     status: { type: String, enum: ["due", "paid"], required: true, default: "due" },
-    createdBy: { type: Types.ObjectId, required: true },
+    createdBy: { type: Types.ObjectId,ref: "User", required: true },
     courseRelationId: { type: Types.ObjectId, ref: "CourseRelation", required: true },
     year: { type: String },
     session: { type: String },
