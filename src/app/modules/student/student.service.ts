@@ -444,8 +444,8 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
     
     //code update agentPayment
     if (
-      payload.agent &&
-      student.agent.toString() !== payload.agent.toString()
+      payload?.agent &&
+      student?.agent !== payload?.agent
     ) {
       const payment = student?.agentPayments?.[0];
       if (payment && payment.courseRelationId) {
