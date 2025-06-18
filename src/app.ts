@@ -57,7 +57,7 @@ app.use(
     origin: [
       "http://localhost:5173",
       "https://uniaid.omniscient.org.uk",
-      "https://recruitment.cyberpeers.co.uk/",
+      "https://recruitment.cyberpeers.co.uk",
     ],
     credentials: true,
   })
