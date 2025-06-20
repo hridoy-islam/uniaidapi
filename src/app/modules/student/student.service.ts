@@ -12,50 +12,25 @@ import CourseRelation from "../course-relation/courseRelation.model";
 import Term from "../term/term.model";
 import AgentCourse from "../agent-course/agentCourse.model";
 
-// const generateRefId = async (): Promise<string> => {
-//   const year = new Date().getFullYear();
-//   const currentDate = `STD${year}`;
 
-//   const lastStudent = await Student.findOne({
-//     refId: { $regex: `^${currentDate}` },
-//   })
-//     .sort({ refId: -1 })
-//     .lean();
-
-//   let newRefNumber = 1;
-//   if (lastStudent?.refId) {
-//     const lastNumber = parseInt(
-//       lastStudent.refId.slice(currentDate.length) || "0",
-//       10
-//     );
-//     newRefNumber = lastNumber + 1;
-//   }
-
-//   const formattedRefNumber = String(newRefNumber).padStart(4, "0");
-//   return `${currentDate}${formattedRefNumber}`;
-// };
 
 const generateRefId = async (): Promise<string> => {
   const year = new Date().getFullYear();
-  const currentDate = `STD${year}`;
+  const prefix = `STD${year}`;
+  let unique = false;
+  let refId = '';
 
-  // Get the last inserted student (by creation time or _id)
-  const lastStudent = await Student.findOne({})
-    .sort({ _id: -1 }) // or { createdAt: -1 } if you have timestamps
-    .lean();
+  while (!unique) {
+    const randomNumber = Math.floor(1000 + Math.random() * 9000); // Generates 4-digit number between 1000–9999
+    refId = `${prefix}${randomNumber}`;
 
-  let newRefNumber = 1;
-
-  if (lastStudent?.refId) {
-    const refId = lastStudent.refId;
-
-    // Extract the number part (last 4 digits)
-    const lastNumber = parseInt(refId.slice(-4), 10);
-    newRefNumber = lastNumber + 1;
+    const existing = await Student.findOne({ refId }).lean();
+    if (!existing) {
+      unique = true;
+    }
   }
 
-  const formattedRefNumber = String(newRefNumber).padStart(4, "0");
-  return `${currentDate}${formattedRefNumber}`;
+  return refId;
 };
 
 
