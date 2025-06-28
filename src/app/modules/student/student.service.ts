@@ -12,13 +12,11 @@ import CourseRelation from "../course-relation/courseRelation.model";
 import Term from "../term/term.model";
 import AgentCourse from "../agent-course/agentCourse.model";
 
-
-
 const generateRefId = async (): Promise<string> => {
   const year = new Date().getFullYear();
   const prefix = `STD${year}`;
   let unique = false;
-  let refId = '';
+  let refId = "";
 
   while (!unique) {
     const randomNumber = Math.floor(1000 + Math.random() * 9000); // Generates 4-digit number between 1000–9999
@@ -32,7 +30,6 @@ const generateRefId = async (): Promise<string> => {
 
   return refId;
 };
-
 
 const createStudentIntoDB = async (payload: TStudent) => {
   try {
@@ -437,15 +434,65 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
             const courseName = courseRelation?.course?.name || "Unknown Course";
             throw new AppError(httpStatus.BAD_REQUEST, `Duplicate Application`);
           }
+
+          const courseRelation = await CourseRelation.findById(
+            newApp.courseRelationId
+          )
+            .populate("institute")
+            .populate("course")
+            .populate("term")
+            .session(session);
+
+          if (!courseRelation) {
+            throw new AppError(httpStatus.NOT_FOUND, "Course not found");
+          }
+
+          const hasYear1 = courseRelation.years.some(
+            (year) => year.year === "Year 1"
+          );
+          if (!hasYear1) {
+            throw new AppError(
+              httpStatus.BAD_REQUEST,
+              "Course relation must have at least Year 1"
+            );
+          }
+
+          if (!student.agent) {
+            throw new AppError(
+              httpStatus.BAD_REQUEST,
+              "Student has no assigned agent"
+            );
+          }
+
+          const agentCourse = await AgentCourse.findOne({
+            agentId: student.agent,
+            courseRelationId: newApp.courseRelationId,
+            status: 1,
+          }).session(session);
+
+          if (!agentCourse) {
+            throw new AppError(
+              httpStatus.BAD_REQUEST,
+              "Agent is not assigned to this course"
+            );
+          }
+
+          const courseInAccounts = student.accounts?.some((acc) =>
+            acc.courseRelationId.equals(newApp.courseRelationId)
+          );
+
+          if (courseInAccounts) {
+            throw new AppError(
+              httpStatus.BAD_REQUEST,
+              "Student already has this course in accounts"
+            );
+          }
         }
       }
     }
-    
+
     //code update agentPayment
-    if (
-      payload?.agent &&
-      student?.agent !== payload?.agent
-    ) {
+    if (payload?.agent && student?.agent !== payload?.agent) {
       const payment = student?.agentPayments?.[0];
       if (payment && payment.courseRelationId) {
         const assigned = await AgentCourse.findOne({
