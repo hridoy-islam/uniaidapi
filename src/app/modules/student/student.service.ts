@@ -453,7 +453,7 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
           if (!hasYear1) {
             throw new AppError(
               httpStatus.BAD_REQUEST,
-              "Course relation must have at least Year 1"
+              "Please complete the course relation data first"
             );
           }
 
