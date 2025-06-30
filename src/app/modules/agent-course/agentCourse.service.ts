@@ -28,7 +28,7 @@ const createAgentCourseIntoDB = async (payload: TAgentCourse) => {
     const hasYear1 = courseRelation.years?.some((year: any) => year.year === "Year 1");
 
     if (!hasYear1) {
-      throw new AppError(httpStatus.BAD_REQUEST, `This course does not have Year 1 information. Please add Year 1 details before assigning.`);
+      throw new AppError(httpStatus.BAD_REQUEST, `Please complete the course details first`);
     }
 
 
