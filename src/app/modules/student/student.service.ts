@@ -11,20 +11,56 @@ import mongoose, { Types } from "mongoose";
 import CourseRelation from "../course-relation/courseRelation.model";
 import Term from "../term/term.model";
 import AgentCourse from "../agent-course/agentCourse.model";
+import moment from "moment";
+
+// const generateRefId = async (): Promise<string> => {
+//   const year = new Date().getFullYear();
+//   const prefix = `STD${year}`;
+//   let unique = false;
+//   let refId = "";
+
+//   while (!unique) {
+//     const randomNumber = Math.floor(1000 + Math.random() * 9000); // Generates 4-digit number between 1000–9999
+//     refId = `${prefix}${randomNumber}`;
+
+//     const existing = await Student.findOne({ refId }).lean();
+//     if (!existing) {
+//       unique = true;
+//     }
+//   }
+
+//   return refId;
+// };
 
 const generateRefId = async (): Promise<string> => {
   const year = new Date().getFullYear();
   const prefix = `STD${year}`;
-  let unique = false;
+  let nextNumber = 1;
   let refId = "";
+  let unique = false;
 
+  // Try until a unique refId is found
   while (!unique) {
-    const randomNumber = Math.floor(1000 + Math.random() * 9000); // Generates 4-digit number between 1000–9999
-    refId = `${prefix}${randomNumber}`;
+    // Get last created student (newest one)
+    const lastStudent = await Student.findOne()
+      .sort({ createdAt: -1 }) // Requires timestamps in schema
+      .lean();
 
-    const existing = await Student.findOne({ refId }).lean();
-    if (!existing) {
+    if (lastStudent?.refId?.startsWith(prefix)) {
+      const lastNumber = parseInt(lastStudent.refId.slice(prefix.length), 10);
+      if (!isNaN(lastNumber)) {
+        nextNumber = lastNumber + 1;
+      }
+    }
+
+    refId = `${prefix}${nextNumber}`;
+
+    // Check for uniqueness
+    const exists = await Student.findOne({ refId }).lean();
+    if (!exists) {
       unique = true;
+    } else {
+      nextNumber++; // If taken, try next number
     }
   }
 
@@ -33,6 +69,7 @@ const generateRefId = async (): Promise<string> => {
 
 const createStudentIntoDB = async (payload: TStudent) => {
   try {
+    payload.dob = moment(payload.dob).utc().startOf("day").toDate();
     payload.refId = await generateRefId();
     const result = await Student.create(payload);
     return result;
