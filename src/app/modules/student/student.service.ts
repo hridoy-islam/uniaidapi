@@ -67,7 +67,7 @@ const generateRefId = async (): Promise<string> => {
 
 const createStudentIntoDB = async (payload: TStudent) => {
   try {
-    payload.dob = moment(payload.dob).utc().startOf("day").toDate();
+    // payload.dob = moment(payload.dob).utc().startOf("day").toDate();
     payload.refId = await generateRefId();
     const result = await Student.create(payload);
     return result;
