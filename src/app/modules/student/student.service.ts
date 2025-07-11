@@ -39,28 +39,26 @@ const generateRefId = async (): Promise<string> => {
   let refId = "";
   let unique = false;
 
-  // Try until a unique refId is found
   while (!unique) {
-    // Get last created student (newest one)
-    const lastStudent = await Student.findOne()
-      .sort({ createdAt: -1 }) // Requires timestamps in schema
-      .lean();
+    const lastStudent = await Student.findOne().sort({ createdAt: -1 }).lean();
 
     if (lastStudent?.refId?.startsWith(prefix)) {
-      const lastNumber = parseInt(lastStudent.refId.slice(prefix.length), 10);
+      const lastNumberStr = lastStudent.refId.slice(prefix.length);
+      const lastNumber = parseInt(lastNumberStr, 10);
       if (!isNaN(lastNumber)) {
         nextNumber = lastNumber + 1;
       }
     }
 
-    refId = `${prefix}${nextNumber}`;
+    // Pad to 4 digits only (e.g., 0241)
+    const paddedNumber = String(nextNumber).padStart(4, "0");
+    refId = `${prefix}${paddedNumber}`;
 
-    // Check for uniqueness
     const exists = await Student.findOne({ refId }).lean();
     if (!exists) {
       unique = true;
     } else {
-      nextNumber++; // If taken, try next number
+      nextNumber++;
     }
   }
 
@@ -69,6 +67,7 @@ const generateRefId = async (): Promise<string> => {
 
 const createStudentIntoDB = async (payload: TStudent) => {
   try {
+    // payload.dob = moment(payload.dob).utc().startOf("day").toDate();
     payload.refId = await generateRefId();
     const result = await Student.create(payload);
     return result;
