@@ -431,6 +431,76 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
       throw new AppError(httpStatus.NOT_FOUND, "Student not found");
     }
 
+    // if (
+    //   payload.courseRelationId &&
+    //   payload.year &&
+    //   payload.sessionName &&
+    //   typeof payload.invoice === "boolean"
+    // ) {
+    //   const { courseRelationId, year, sessionName, invoice } = payload;
+
+    //   // Find and update the specific session
+    //   const account = student.accounts.find(
+    //     (acc) => acc.courseRelationId.toString() === courseRelationId
+    //   );
+
+    //   if (account) {
+    //     const yearObj = account.years.find((y) => y.year === year);
+    //     if (yearObj) {
+    //       const session = yearObj.sessions.find(
+    //         (s) => s.sessionName === sessionName
+    //       );
+    //       if (session) {
+    //         session.invoice = invoice;
+
+    //         // Explicitly mark the accounts array as modified
+    //         student.markModified("accounts");
+    //       }
+    //     }
+    //   }
+
+    //   // Remove the invoice update fields from payload
+    //   delete payload.courseRelationId;
+    //   delete payload.year;
+    //   delete payload.sessionName;
+    //   delete payload.invoice;
+    // }
+
+    // Handle remit updates in agentPayments
+    if (
+      payload.courseRelationId &&
+      payload.year &&
+      payload.sessionName &&
+      typeof payload.remit === "boolean"
+    ) {
+      const { courseRelationId, year, sessionName, remit } = payload;
+
+      // Find and update the specific session in agentPayments
+      const agentPayment = student.agentPayments.find(
+        (payment) => payment.courseRelationId.toString() === courseRelationId
+      );
+
+      if (agentPayment) {
+        const yearObj = agentPayment.years.find((y) => y.year === year);
+        if (yearObj) {
+          const session = yearObj.sessions.find(
+            (s) => s.sessionName === sessionName
+          );
+          if (session) {
+            session.remit = remit;
+
+            student.markModified("agentPayments");
+          }
+        }
+      }
+
+      // Remove the remit update fields from payload
+      delete payload.courseRelationId;
+      delete payload.year;
+      delete payload.sessionName;
+      delete payload.remit;
+    }
+
     // Handle agent assignment logic
     if (payload.agent) {
       const agent = await User.findById(payload.agent).session(session);
@@ -549,12 +619,14 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
       }
     }
 
-    const result = await Student.findByIdAndUpdate(id, payload, {
-      new: true,
-      runValidators: true,
-      session,
-    });
+    // const result = await Student.findByIdAndUpdate(id, payload, {
+    //   new: true,
+    //   runValidators: true,
+    //   session,
+    // });
 
+    Object.assign(student, payload);
+    const result = await student.save({ session });
     await session.commitTransaction();
     return result;
   } catch (error) {

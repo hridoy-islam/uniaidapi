@@ -11,25 +11,29 @@ import moment from "moment";
 
 const createInvoiceIntoDB = async (payload: TInvoice) => {
   try {
-
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, "0");
     const date = String(now.getDate()).padStart(2, "0");
-    const currentDate = `${year}${month}${date}`; 
-    
+    const currentDate = `${year}${month}${date}`;
+
     // Find the latest invoice of the day
-    const lastInvoice = await Invoice.findOne({ reference: { $regex: `^${currentDate}` } })
-      .sort({ reference: -1 }) 
-      .lean(); 
-    
+    const lastInvoice = await Invoice.findOne({
+      reference: { $regex: `^${currentDate}` },
+    })
+      .sort({ reference: -1 })
+      .lean();
+
     let newInvoiceNumber = 1;
-    
+
     if (lastInvoice && lastInvoice.reference) {
-      const lastNumber = parseInt(lastInvoice.reference.slice(currentDate.length) || "0", 10);
+      const lastNumber = parseInt(
+        lastInvoice.reference.slice(currentDate.length) || "0",
+        10
+      );
       newInvoiceNumber = lastNumber + 1;
     }
-    
+
     const formattedInvoiceNumber = String(newInvoiceNumber).padStart(4, "0");
     const generatedReference = `${currentDate}${formattedInvoiceNumber}`;
 
@@ -38,16 +42,45 @@ const createInvoiceIntoDB = async (payload: TInvoice) => {
 
     // Create the invoice
     const result = await Invoice.create(payload);
+
+    for (const studentData of payload.students) {
+      const student = await Student.findOne({ refId: studentData.refId });
+
+      if (!student) continue;
+
+      for (const account of student.accounts) {
+        if (
+          account.courseRelationId.toString() !==
+          payload.courseRelationId.toString()
+        )
+          continue;
+
+        const yearObj = account.years.find((y) => y.year === payload.year);
+        if (!yearObj) continue;
+
+        const sessionObj = yearObj.sessions.find(
+          (s) => s.sessionName === payload.session
+        );
+        if (!sessionObj) continue;
+
+        sessionObj.invoice = true;
+      }
+
+      await student.save();
+    }
+
     return result;
   } catch (error: any) {
     console.error("Error in createInvoiceIntoDB:", error);
     if (error instanceof AppError) {
       throw error;
     }
-    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, error.message || "Failed to create Invoice");
+    throw new AppError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      error.message || "Failed to create Invoice"
+    );
   }
 };
-
 
 
 const getAllInvoiceFromDB = async (query: Record<string, unknown>) => {
@@ -114,7 +147,7 @@ const getSingleInvoiceFromDB = async (id: string) => {
 
 const updateInvoiceIntoDB = async (id: string, payload: Partial<TInvoice>) => {
   const invoice = await Invoice.findById(id);
-
+  
   if (!invoice) {
     throw new AppError(httpStatus.NOT_FOUND, "Invoice not found");
   }
@@ -170,11 +203,83 @@ const updateInvoiceIntoDB = async (id: string, payload: Partial<TInvoice>) => {
             ],
           }
         );
-
       } catch (error) {
         console.error("Error updating student accounts or agent payments:", error);
         throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Mark as Paid not Done");
       }
+    }
+  }
+
+  // Handle student list changes (add/remove) - separate from payment logic
+  if (payload.students && invoice.students) {
+    const currentStudentRefIds = invoice.students.map((student) => student.refId);
+    const newStudentRefIds = payload.students.map((student) => student.refId);
+    
+    const year = invoice.year;
+    const session = invoice.session;
+    const courseRelationId = invoice.courseRelationId;
+
+    // Find added students
+    const addedStudentRefIds = newStudentRefIds.filter(
+      refId => !currentStudentRefIds.includes(refId)
+    );
+
+    // Find removed students
+    const removedStudentRefIds = currentStudentRefIds.filter(
+      refId => !newStudentRefIds.includes(refId)
+    );
+
+    try {
+      // Handle added students - set their invoice status to true
+      if (addedStudentRefIds.length > 0) {
+        await Student.updateMany(
+          {
+            refId: { $in: addedStudentRefIds },
+            "accounts.courseRelationId": courseRelationId,
+            "accounts.years.year": year,
+            "accounts.years.sessions.sessionName": session,
+          },
+          {
+            $set: {
+              "accounts.$[account].years.$[year].sessions.$[session].invoice": true,
+            },
+          },
+          {
+            arrayFilters: [
+              { "account.courseRelationId": courseRelationId },
+              { "year.year": year },
+              { "session.sessionName": session },
+            ],
+          }
+        );
+      }
+
+      // Handle removed students - set their invoice status to false
+      if (removedStudentRefIds.length > 0) {
+        await Student.updateMany(
+          {
+            refId: { $in: removedStudentRefIds },
+            "accounts.courseRelationId": courseRelationId,
+            "accounts.years.year": year,
+            "accounts.years.sessions.sessionName": session,
+          },
+          {
+            $set: {
+              "accounts.$[account].years.$[year].sessions.$[session].invoice": false,
+            },
+          },
+          {
+            arrayFilters: [
+              { "account.courseRelationId": courseRelationId },
+              { "year.year": year },
+              { "session.sessionName": session },
+            ],
+          }
+        );
+      }
+    } catch (error) {
+      console.error("Error updating student invoice status:", error);
+      throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Failed to update student invoice status");
     }
   }
 

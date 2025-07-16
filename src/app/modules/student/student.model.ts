@@ -7,6 +7,7 @@ const SessionSchema = new Schema({
   sessionName: { type: String, required: true },
   invoiceDate: { type: Date, required: true },
   status: { type: String, enum: ["due", "paid"], default: "due" },
+  invoice: { type: Boolean, default: false },
 });
 
 // Define the Year Schema (Referencing CourseRelation)
@@ -97,6 +98,8 @@ const AgentPaymentSessionSchema = new Schema({
     enum: ["due", "available", "paid"],
     default: "due",
   },
+  remit: { type: Boolean, default: false },
+
   // amount: { type: Number, default: 0 } // Added amount field for commission tracking
 });
 
@@ -191,7 +194,6 @@ const StudentSchema = new Schema<TStudent>(
   }
 );
 
-
 // Pre-save hook to populate accounts based on courseRelationId
 StudentSchema.pre<TStudent>("save", async function (next) {
   if (this.isNew) {
@@ -233,6 +235,7 @@ StudentSchema.pre<TStudent>("save", async function (next) {
             sessionName: session.sessionName,
             invoiceDate: session.invoiceDate,
             status: "due",
+            invoice: false
           })),
         })),
       }));
@@ -254,6 +257,7 @@ StudentSchema.pre<TStudent>("save", async function (next) {
                     name: session.sessionName,
                     invoiceDate: session.invoiceDate,
                     status: "due",
+                    remit: false
                     // amount: calculateAgentCommission(session) // Implement this function
                   })),
                 },
