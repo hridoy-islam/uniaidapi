@@ -110,7 +110,14 @@ const getAllInvoiceFromDB = async (query: Record<string, unknown>) => {
     };
   }
 
-  const userQuery = new QueryBuilder(Invoice.find().populate("customer").populate("createdBy","sortCode, location, name, email, imgUrl").populate('bank'), processedQuery)
+  const userQuery = new QueryBuilder(Invoice.find().populate("customer").populate("createdBy","sortCode, location, name, email, imgUrl").populate('bank').populate({
+      path: "courseRelationId",
+      populate: [
+        { path: "course", select: "name" },
+        { path: "institute", select: "name" },
+        { path: "term", select: "term" },
+      ],
+    }), processedQuery)
     .search(InvoiceSearchableFields)
     .filter()
     .sort()
