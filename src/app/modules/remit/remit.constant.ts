@@ -1,2 +1,2 @@
 
-export const RemitInvoiceSearchableFields = ["reference","remitTo"];
+export const RemitInvoiceSearchableFields = ["reference"];
