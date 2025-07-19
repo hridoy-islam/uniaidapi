@@ -137,7 +137,7 @@ const StudentSchema = new Schema<TStudent>(
     email: { type: String, required: true, unique: true },
     phone: { type: String, required: true },
     collegeRoll: { type: String, default: null },
-    dob: { type: Date, required: true },
+    dob: { type: String, required: true },
     noDocuments: { type: Boolean, default: false },
     claimDisabilities: { type: Boolean, default: false },
     disabilitiesOption: { type: String, default: null },

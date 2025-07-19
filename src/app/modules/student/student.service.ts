@@ -67,7 +67,7 @@ const generateRefId = async (): Promise<string> => {
 
 const createStudentIntoDB = async (payload: TStudent) => {
   try {
-    // payload.dob = moment(payload.dob).utc().startOf("day").toDate();
+    payload.dob = moment(payload.dob).format("YYYY-MM-DD");
     payload.refId = await generateRefId();
     const result = await Student.create(payload);
     return result;
@@ -430,7 +430,9 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
     if (!student) {
       throw new AppError(httpStatus.NOT_FOUND, "Student not found");
     }
-
+    if (payload.dob) {
+      payload.dob = moment(payload.dob).format("YYYY-MM-DD");
+    }
 
     // Handle agent assignment logic
     if (payload.agent) {
