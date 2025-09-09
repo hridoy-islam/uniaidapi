@@ -4,13 +4,15 @@ import AppError from "../../errors/AppError";
 import Student from "../student/student.model";
 import Remit from "../remit/remit.model";
 import { User } from "../user/user.model";
+import config from "../../config";
 
 
 const storage = new Storage({
   keyFilename: "./work.json", // Update this path if necessary
   projectId: "vast-pride-453709-n7",
 });
-const bucketName = "uniaid"; // Make sure this bucket exists
+const bucketName = config.bucket as string; // Make sure this bucket exists
+
 const bucket = storage.bucket(bucketName);
 
 const UploadDocumentToGCS = async (file: any, payload: any) => {

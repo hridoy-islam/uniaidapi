@@ -59,7 +59,6 @@ app.use(
       "https://uniaid.omniscient.org.uk",
       "https://recruitment.cyberpeers.co.uk",
       "https://iapplyportal.ieeuk.com",
-      "http://iapplyportal.ieeuk.com"
     ],
     credentials: true,
   })
