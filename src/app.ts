@@ -58,6 +58,7 @@ app.use(
       "http://localhost:5173",
       "https://uniaid.omniscient.org.uk",
       "https://recruitment.cyberpeers.co.uk",
+      "https://an.cyberpeers.co.uk",
       "https://iapplyportal.ieeuk.com",
     ],
     credentials: true,
