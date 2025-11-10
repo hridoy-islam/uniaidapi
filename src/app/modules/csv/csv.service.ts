@@ -55,7 +55,7 @@ import Student from "../student/student.model";
 // };
 
 
-const createCSVIntoDB = async (payload: TCSV) => {
+const createCSVIntoDB = async (payload: any) => {
   try {
     if (!Array.isArray(payload?.studentData)) {
       throw new AppError(httpStatus.BAD_REQUEST, "Invalid student data");
@@ -63,7 +63,7 @@ const createCSVIntoDB = async (payload: TCSV) => {
 
     // Step 1: Extract all raw phone numbers
     const phoneNumbers = payload.studentData
-      .map((s) => s.phone?.trim())
+      .map((s:any) => s.phone?.trim())
       .filter(Boolean);
 
     // Step 2: Query existing students
@@ -77,13 +77,13 @@ const createCSVIntoDB = async (payload: TCSV) => {
     );
 
     // Step 4: Debug unmatched phones
-    const unmatched = phoneNumbers.filter(p => !phoneToStudentIdMap.has(p));
+    const unmatched = phoneNumbers.filter((p:any) => !phoneToStudentIdMap.has(p));
     if (unmatched.length > 0) {
       console.warn("⚠️ Unmatched phones:", unmatched);
     }
 
     // Step 5: Update studentData
-    const updatedStudentData = payload.studentData.map((student) => ({
+    const updatedStudentData = payload.studentData.map((student:any) => ({
       ...student,
       studentId: phoneToStudentIdMap.get(student.phone?.trim()) || undefined,
     }));
@@ -160,7 +160,7 @@ const getAllCSVsFromDB = async (query: Record<string, unknown>) => {
 
   const CSVQuery = new QueryBuilder(CSV.find().populate("studentData.studentId","title firstName lastName email phone dob refId"), query)
     .search(csvSarchableFields)
-    .filter()
+    .filter(query)
     .sort()
     .paginate()
     .fields();
@@ -219,7 +219,7 @@ const getAllCompanyCSVsFromDB = async (companyId: string, query: Record<string, 
 
   // Apply other QueryBuilder methods
   const finalQuery = CSVQuery
-    .filter()
+    .filter(query)
     .sort()
     .paginate()
     .fields();

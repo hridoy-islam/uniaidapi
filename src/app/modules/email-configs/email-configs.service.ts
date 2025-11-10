@@ -29,7 +29,7 @@ const createEmailConfigIntoDB = async (payload: TEmailConfig) => {
 const getAllEmailConfigFromDB = async (query: Record<string, unknown>) => {
   const EmailConfigQuery = new QueryBuilder(EmailConfig.find(), query)
     .search(emailConfigSearchableFields)
-    .filter()
+    .filter(query)
     .sort()
     .paginate()
     .fields();

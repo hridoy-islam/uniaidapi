@@ -1,5 +1,6 @@
 import mongoose, { Schema, Document } from "mongoose";
 import { TStudent } from "./student.interface";
+import { AnyAaaaRecord } from "dns";
 
 // Define the Session Schema
 const SessionSchema = new Schema({
@@ -171,8 +172,8 @@ const StudentSchema = new Schema<TStudent>(
     ukInPast: { type: Boolean, default: false },
     currentlyInUk: { type: Boolean, default: false },
     emergencyContact: { type: [EmergencyContactSchema], default: [] },
-    academicHistory: { type: [AcademicHistorySchema], default: [] },
-    workDetails: { type: [WorkExperienceSchema], default: [] },
+    academicHistory: { type: [AcademicHistorySchema] as any, default: [] },
+    workDetails: { type: [WorkExperienceSchema] as any, default: [] },
     agent: { type: Schema.Types.ObjectId, ref: "User" },
     documents: {
       type: [
@@ -183,11 +184,11 @@ const StudentSchema = new Schema<TStudent>(
       ],
       default: [],
     },
-    applications: { type: [ApplicationSchema], default: [] },
+    applications: { type: [ApplicationSchema] as any, default: [] },
     assignStaff: [{ type: Schema.Types.ObjectId, ref: "User", default: [] }],
-    englishLanguageExam: { type: [EnglishLanguageExamSchema], default: [] },
-    accounts: { type: [AccountSchema], default: [] }, // Updated to use AccountSchema
-    agentPayments: { type: [AgentPaymentSchema], default: [] },
+    englishLanguageExam: { type: [EnglishLanguageExamSchema]as any ,default: [] },
+    accounts: { type: [AccountSchema] as any, default: [] }, // Updated to use AccountSchema
+    agentPayments: { type: [AgentPaymentSchema] as any, default: [] },
   },
   {
     timestamps: true,
@@ -196,18 +197,18 @@ const StudentSchema = new Schema<TStudent>(
 
 // Pre-save hook to populate accounts based on courseRelationId
 StudentSchema.pre<TStudent>("save", async function (next) {
-  if (this.isNew) {
+  if ((this as any).isNew) {
     const courseRelation = await mongoose
       .model("CourseRelation")
-      .findById(this.courseRelationId);
+      .findById((this as any).courseRelationId);
 
     if (courseRelation) {
       // Populate the accounts field with data from CourseRelation
-      this.accounts = courseRelation.accounts.map((account) => ({
+      this.accounts = courseRelation.accounts.map((account:any) => ({
         ...account.toObject(),
-        years: account.years.map((year) => ({
+        years: account.years.map((year:any) => ({
           ...year.toObject(),
-          sessions: year.sessions.map((session) => ({
+          sessions: year.sessions.map((session:any) => ({
             ...session.toObject(),
             status: "due", // Set session status to "due"
           })),
@@ -219,18 +220,18 @@ StudentSchema.pre<TStudent>("save", async function (next) {
 });
 
 StudentSchema.pre<TStudent>("save", async function (next) {
-  if (this.isNew) {
+  if ((this as any).isNew)  {
     const courseRelation = await mongoose
       .model("CourseRelation")
-      .findById(this.courseRelationId);
+      .findById((this as any).courseRelationId);
 
     if (courseRelation) {
       // 1. Populate accounts
-      this.accounts = courseRelation.accounts.map((account) => ({
+      this.accounts = courseRelation.accounts.map((account:any) => ({
         courseRelationId: account.courseRelationId,
-        years: account.years.map((year) => ({
+        years: account.years.map((year:any) => ({
           year: year.year,
-          sessions: year.sessions.map((session) => ({
+          sessions: year.sessions.map((session:any) => ({
             id: session.id,
             sessionName: session.sessionName,
             invoiceDate: session.invoiceDate,
@@ -242,7 +243,7 @@ StudentSchema.pre<TStudent>("save", async function (next) {
 
       // 2. Populate agentPayments if student has an agent
       if (this.agent) {
-        const year1 = courseRelation.years.find((y) => y.year === "Year 1");
+        const year1 = courseRelation.years.find((y:any) => y.year === "Year 1");
 
         if (year1) {
           this.agentPayments = [
@@ -252,7 +253,7 @@ StudentSchema.pre<TStudent>("save", async function (next) {
               years: [
                 {
                   year: "Year 1",
-                  sessions: year1.sessions.map((session) => ({
+                  sessions: year1.sessions.map((session:any) => ({
                     id: session.id,
                     name: session.sessionName,
                     invoiceDate: session.invoiceDate,
@@ -273,8 +274,8 @@ StudentSchema.pre<TStudent>("save", async function (next) {
 
 // Add validation to ensure agentPayments only contains Year 1
 StudentSchema.path("agentPayments").validate(function (payments) {
-  return payments.every((payment) =>
-    payment.years.every((year) => year.year === "Year 1")
+  return payments.every((payment:any) =>
+    payment.years.every((year:any) => year.year === "Year 1")
   );
 }, "Agent payments can only be for Year 1");
 

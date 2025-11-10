@@ -62,7 +62,7 @@ const getAllAgentCourseFromDB = async (query: Record<string, unknown>) => {
   })
     , query)
     .search(AgentCourseSearchableFields)
-    .filter()
+    .filter(query)
     .sort()
     .paginate()
     .fields();
@@ -109,7 +109,7 @@ const updateAgentCourseIntoDB = async (id: string, payload: Partial<TAgentCourse
   for (const student of students) {
     let isModified = false;
 
-    for (const payment of student.agentPayments) {
+    for (const payment of (student as any).agentPayments) {
       if (payment.courseRelationId.toString() !== result.courseRelationId.toString()) continue;
 
       for (const year of payment.years) {

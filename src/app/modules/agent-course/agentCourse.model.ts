@@ -19,9 +19,7 @@ const agentCourseSchema = new Schema<TAgentCourse>(
 
     // Define the year field as an array of session documents
     year: {
-      type: [
-        { sessionName: { type: String }, invoiceDate: { type: Date }, type: { type: String }, rate: { type: Number } },
-      ],
+      type: [Schema.Types.Mixed] as any, 
       validate: [arrayLimit, '{PATH} exceeds the limit of 3 sessions'],
       default: [
         { sessionName: 'Session 1', invoiceDate: '', type: 'flat', rate: 0 },

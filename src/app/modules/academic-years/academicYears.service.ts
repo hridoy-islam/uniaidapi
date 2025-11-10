@@ -29,7 +29,7 @@ const createAcademicYearsIntoDB = async (payload: TAcademicYears) => {
 const getAllAcademicYearsFromDB = async (query: Record<string, unknown>) => {
   const AcademicYearsQuery = new QueryBuilder(AcademicYears.find(), query)
     .search(AcademicYearsSearchableFields)
-    .filter()
+    .filter(query)
     .sort()
     .paginate()
     .fields();

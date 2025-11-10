@@ -216,7 +216,7 @@ const verifyEmailIntoDB = async (email: string, otp: string) => {
   }
 
   // Check if the OTP matches
-  if (foundUser.otp !== otp) {
+  if ((foundUser as any).otp !== otp) {
     throw new AppError(httpStatus.BAD_REQUEST, "Invalid OTP!");
   }
   await User.updateOne({ email }, { authorized: true });

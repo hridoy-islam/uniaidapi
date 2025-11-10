@@ -30,7 +30,7 @@ const getAllNoteFromDB = async (query: Record<string, unknown>) => {
   
   const userQuery = new QueryBuilder(Note.find().populate("createdBy","name").populate("followUpBy","name").populate("student","_id email"), query)
     .search(NoteSearchableFields)
-    .filter()
+    .filter(query)
     .sort()
     .paginate()
     .fields();

@@ -86,7 +86,7 @@ const createRemitInvoiceIntoDB = async (payload: TRemit) => {
       const student = await Student.findOne({ refId: studentData.refId });
       if (!student) continue;
 
-      for (const agentPayment of student.agentPayments) {
+      for (const agentPayment of (student as any).agentPayments) {
         if (
           agentPayment.courseRelationId.toString() !==
           payload.courseRelationId.toString()
@@ -154,7 +154,7 @@ const getAllRemitInvoiceFromDB = async (query: Record<string, unknown>) => {
     processedQuery
   )
     .search(RemitInvoiceSearchableFields)
-    .filter()
+    .filter(query)
     .sort()
     .paginate()
     .fields();

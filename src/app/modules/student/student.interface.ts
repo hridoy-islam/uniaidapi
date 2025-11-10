@@ -65,4 +65,6 @@ export interface TStudent {
   assignStaff: Types.ObjectId[]; 
   englishLanguageExam: any[]; 
   accounts: Types.ObjectId[]; 
+   agentPayments: any[];
+  
 }

@@ -29,7 +29,7 @@ const createCustomerIntoDB = async (payload: TCustomer) => {
 const getAllCustomerFromDB = async (query: Record<string, unknown>) => {
   const CustomerQuery = new QueryBuilder(Customer.find(), query)
     .search(customerSearchableFields)
-    .filter()
+    .filter(query)
     .sort()
     .paginate()
     .fields();

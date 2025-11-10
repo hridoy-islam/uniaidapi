@@ -29,7 +29,7 @@ const createEmailDraftIntoDB = async (payload: TEmailDraft) => {
 const getAllEmailDraftFromDB = async (query: Record<string, unknown>) => {
   const EmailDraftQuery = new QueryBuilder(EmailDraft.find(), query)
     .search(emailDraftSearchableFields)
-    .filter()
+    .filter(query)
     .sort()
     .paginate()
     .fields();
