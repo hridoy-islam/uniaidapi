@@ -3,7 +3,7 @@ import QueryBuilder from "../../builder/QueryBuilder";
 
 import AppError from "../../errors/AppError";
 
-import {AgentCourseSearchableFields } from "./agentCourse.constant";
+import { AgentCourseSearchableFields } from "./agentCourse.constant";
 import { TAgentCourse } from "./agentCourse.interface";
 import AgentCourse from "./agentCourse.model";
 import Student from "../student/student.model";
@@ -15,10 +15,10 @@ const createAgentCourseIntoDB = async (payload: TAgentCourse) => {
   try {
     const existingCourse = await AgentCourse.findOne({
       agentId: payload.agentId,
-      courseRelationId: payload.courseRelationId, 
+      courseRelationId: payload.courseRelationId,
     });
 
-   const courseRelation = await CourseRelation.findById(payload.courseRelationId);
+    const courseRelation = await CourseRelation.findById(payload.courseRelationId);
 
     if (!courseRelation) {
       throw new AppError(httpStatus.BAD_REQUEST, "Invalid courseRelationId");
@@ -118,10 +118,19 @@ const updateAgentCourseIntoDB = async (id: string, payload: Partial<TAgentCourse
             (s) => s.sessionName === session.sessionName
           );
 
-          if (updatedSession && session.invoiceDate.toISOString() !== updatedSession.invoiceDate.toISOString()) {
-            session.invoiceDate = updatedSession.invoiceDate;
+          // if (updatedSession && session.invoiceDate.toISOString() !== updatedSession.invoiceDate.toISOString()) {
+          //   session.invoiceDate = updatedSession.invoiceDate;
+          //   isModified = true;
+          // }
+          if (
+            updatedSession &&
+            new Date(session.invoiceDate).getTime() !== new Date(updatedSession.invoiceDate).getTime()
+          ) {
+            session.invoiceDate = new Date(updatedSession.invoiceDate);
             isModified = true;
           }
+
+
         }
       }
     }
@@ -143,6 +152,6 @@ export const AgentCourseServices = {
   getSingleAgentCourseFromDB,
   updateAgentCourseIntoDB,
   createAgentCourseIntoDB
-  
+
 
 };
