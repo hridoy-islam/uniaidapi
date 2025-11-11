@@ -48,18 +48,18 @@ const createInvoiceIntoDB = async (payload: TInvoice) => {
 
       if (!student) continue;
 
-      for (const account of student.accounts) {
+      for (const account of (student as any).accounts) {
         if (
           account.courseRelationId.toString() !==
           payload.courseRelationId.toString()
         )
           continue;
 
-        const yearObj = account.years.find((y) => y.year === payload.year);
+        const yearObj = account.years.find((y:any) => y.year === payload.year);
         if (!yearObj) continue;
 
         const sessionObj = yearObj.sessions.find(
-          (s) => s.sessionName === payload.session
+          (s:any) => s.sessionName === payload.session
         );
         if (!sessionObj) continue;
 
@@ -119,7 +119,7 @@ const getAllInvoiceFromDB = async (query: Record<string, unknown>) => {
       ],
     }), processedQuery)
     .search(InvoiceSearchableFields)
-    .filter()
+    .filter(query)
     .sort()
     .paginate()
     .fields();

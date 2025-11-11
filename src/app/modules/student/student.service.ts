@@ -117,23 +117,23 @@ const getAllStudentFromDB = async (query: Record<string, unknown>) => {
   if (staffId || createdBy) {
     processedQuery["$or"] = [];
     if (staffId) {
-      processedQuery["$or"].push({
+      (processedQuery as any)["$or"].push({
         assignStaff: Array.isArray(staffId)
           ? {
               $in: staffId.map((id: string) => new mongoose.Types.ObjectId(id)),
             }
-          : new mongoose.Types.ObjectId(staffId),
+          : new mongoose.Types.ObjectId(staffId as any),
       });
     }
     if (createdBy) {
-      processedQuery["$or"].push({
+      (processedQuery as any)["$or"].push({
         createdBy: Array.isArray(createdBy)
           ? {
               $in: createdBy.map(
                 (id: string) => new mongoose.Types.ObjectId(id)
               ),
             }
-          : new mongoose.Types.ObjectId(createdBy),
+          : new mongoose.Types.ObjectId(createdBy as any),
       });
     }
   }
@@ -147,18 +147,18 @@ const getAllStudentFromDB = async (query: Record<string, unknown>) => {
 
   let courseRelationIdSet: Set<string> | null = null;
 
-  if ((institute?.length || 0) > 0 || (term?.length || 0) > 0) {
+  if (((institute as any)?.length || 0) > 0 || ((term as any)?.length || 0) > 0) {
     const courseRelationFilter: Record<string, any> = {};
 
-    if (institute?.length > 0) {
+    if ((institute as any)?.length > 0) {
       courseRelationFilter.institute = {
-        $in: institute.map((id) => new mongoose.Types.ObjectId(id)),
+        $in: (institute as any).map((id:any) => new mongoose.Types.ObjectId(id)),
       };
     }
 
-    if (term?.length > 0) {
+    if ((term as any)?.length > 0) {
       courseRelationFilter.term = {
-        $in: term.map((id) => new mongoose.Types.ObjectId(id)),
+        $in: (term as any).map((id:any) => new mongoose.Types.ObjectId(id)),
       };
     }
 
@@ -168,16 +168,16 @@ const getAllStudentFromDB = async (query: Record<string, unknown>) => {
   }
 
   // Handle agentSearch filter
-  if (agentSearch?.length > 0) {
+  if ((agentSearch as any)?.length > 0) {
     processedQuery["agent"] = {
-      $in: agentSearch.map((id: string) => new mongoose.Types.ObjectId(id)),
+      $in: (agentSearch as any).map((id: string) => new mongoose.Types.ObjectId(id)),
     };
   }
 
-  if (academic_year_id?.length > 0) {
+  if ((academic_year_id as any)?.length > 0) {
     const termIds = await Term.find({
       academic_year_id: {
-        $in: academic_year_id.map((id) => new mongoose.Types.ObjectId(id)),
+        $in: (academic_year_id as any).map((id:any) => new mongoose.Types.ObjectId(id)),
       },
     }).distinct("_id");
 
@@ -227,12 +227,12 @@ const getAllStudentFromDB = async (query: Record<string, unknown>) => {
 
     // Convert string IDs to ObjectId if needed (match your DB schema)
     if (agentid) {
-      agentPaymentsQuery["agent"] = new mongoose.Types.ObjectId(agentid);
+      agentPaymentsQuery["agent"] = new mongoose.Types.ObjectId(agentid as any);
     }
 
     if (agentCourseRelationId) {
       agentPaymentsQuery["courseRelationId"] = new mongoose.Types.ObjectId(
-        agentCourseRelationId
+        agentCourseRelationId as any
       );
     }
 
@@ -299,7 +299,7 @@ const getAllStudentFromDB = async (query: Record<string, unknown>) => {
       accountsQuery["years"] = { $elemMatch: yearsQuery };
     }
 
-    processedQuery["$and"] = (processedQuery["$and"] || []).concat([
+    (processedQuery as any)["$and"] = ((processedQuery as any)["$and"] || []).concat([
       { accounts: { $elemMatch: accountsQuery } },
     ]);
 
@@ -344,7 +344,7 @@ const getAllStudentFromDB = async (query: Record<string, unknown>) => {
   )
 
     .search(studentSearchableFields)
-    .filter()
+    .filter(query)
     .sort()
     .paginate()
     .fields();
@@ -455,26 +455,26 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
         : [payload.applications];
 
       for (const newApp of newApplications) {
-        if (newApp?.courseRelationId) {
+        if ((newApp as any)?.courseRelationId) {
           // Check if courseRelationId already exists in student's applications
           const duplicateExists = student.applications.some(
-            (app) => app?.courseRelationId?.equals(newApp?.courseRelationId)
+            (app:any) => app?.courseRelationId?.equals((newApp as any)?.courseRelationId)
           );
 
           if (duplicateExists) {
             // Get course details for better error message
             const courseRelation = await CourseRelation.findById(
-              newApp?.courseRelationId
+              (newApp as any)?.courseRelationId
             )
               .populate("course")
               .session(session);
 
-            const courseName = courseRelation?.course?.name || "Unknown Course";
+            const courseName = (courseRelation as any)?.course?.name || "Unknown Course";
             throw new AppError(httpStatus.BAD_REQUEST, `Duplicate Application`);
           }
 
           const courseRelation = await CourseRelation.findById(
-            newApp.courseRelationId
+            (newApp as any).courseRelationId
           )
             .populate("institute")
             .populate("course")
@@ -504,7 +504,7 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
 
           const agentCourse = await AgentCourse.findOne({
             agentId: student.agent,
-            courseRelationId: newApp.courseRelationId,
+            courseRelationId: (newApp as any).courseRelationId,
             status: 1,
           }).session(session);
 
@@ -515,8 +515,8 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
             );
           }
 
-          const courseInAccounts = student.accounts?.some((acc) =>
-            acc.courseRelationId.equals(newApp.courseRelationId)
+          const courseInAccounts = student.accounts?.some((acc:any) =>
+            acc.courseRelationId.equals((newApp as any).courseRelationId)
           );
 
           if (courseInAccounts) {
@@ -548,7 +548,7 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
 
         // Update agent in the single agentPayment
         payment.agent = payload.agent;
-        payload?.agentPayments = [payment];
+        (payload as any).agentPayments = [payment];
       }
     }
 
@@ -598,9 +598,9 @@ const updateStudentApplicationIntoDB = async (
     }
 
     // 2. Handle status log according to your schema requirements
-    const previousStatus = application.status || null;
+    const previousStatus = (application as any).status || null;
     const isInitialStatus =
-      !application.statusLogs || application.statusLogs.length === 0;
+      !(application as any).statusLogs || (application as any).statusLogs.length === 0;
 
     const statusLog: any = {
       prev_status: previousStatus,
@@ -611,18 +611,18 @@ const updateStudentApplicationIntoDB = async (
     if (isInitialStatus) {
       statusLog.changed_by = changedBy;
     } else {
-      const lastLog = application.statusLogs[application.statusLogs.length - 1];
+      const lastLog = (application as any).statusLogs[(application as any).statusLogs.length - 1];
       statusLog.assigned_by = lastLog.changed_by;
       statusLog.assigned_at = lastLog.created_at;
       statusLog.changed_by = changedBy;
     }
 
-    application.status = newStatus;
-    application.statusLogs = [...(application.statusLogs || []), statusLog];
+    (application as any).status = newStatus;
+    (application as any).statusLogs = [...((application as any).statusLogs || []), statusLog];
 
     // 3. Handle enrollment logic if status is 'Enrolled'
     if (newStatus === "Enrolled") {
-      const courseRelationId = application.courseRelationId;
+      const courseRelationId = (application as any).courseRelationId;
 
       // Validation check for "Year 1" in course relation
       const courseRelation = await CourseRelation.findById(courseRelationId)
@@ -667,7 +667,7 @@ const updateStudentApplicationIntoDB = async (
       }
 
       if (
-        student.accounts?.some((acc) =>
+        student.accounts?.some((acc:any) =>
           acc.courseRelationId.equals(courseRelationId)
         )
       ) {
@@ -691,7 +691,7 @@ const updateStudentApplicationIntoDB = async (
       };
 
       student.accounts = student.accounts || [];
-      student.accounts.push(accountsData);
+      student.accounts.push(accountsData as any);
 
       // Handle agent payments - Find Year 1 data
       const year1 = courseRelation.years.find((y) => y.year === "Year 1");
@@ -741,10 +741,10 @@ const updateStudentApplicationIntoDB = async (
 
     return {
       applicationId: application._id,
-      status: application.status,
+      status: (application as any).status,
       prevStatus: previousStatus,
       ...(newStatus === "Enrolled" && {
-        enrolledCourse: application.courseRelationId,
+        enrolledCourse: (application as any).courseRelationId,
         accounts: student.accounts,
         agentPayments: student.agentPayments,
       }),

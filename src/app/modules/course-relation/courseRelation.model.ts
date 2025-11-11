@@ -32,15 +32,15 @@ const courseRelationSchema = new Schema<TCourseRelation>(
   { timestamps: true } // Adds createdAt and updatedAt fields
 );
 
-courseRelationSchema.virtual("institute_name").get(function () {
+courseRelationSchema.virtual<any>("institute_name").get(function () {
   return this.institute?.name;
 });
 
-courseRelationSchema.virtual("course_name").get(function () {
+courseRelationSchema.virtual<any>("course_name").get(function () {
   return this.course?.name;
 });
 
-courseRelationSchema.virtual("term_name").get(function () {
+courseRelationSchema.virtual<any>("term_name").get(function () {
   return this.term?.term;
 });
 

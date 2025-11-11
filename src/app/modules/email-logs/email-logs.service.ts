@@ -29,7 +29,7 @@ const createEmailLogIntoDB = async (payload: TEmailLog) => {
 const getAllEmailLogFromDB = async (query: Record<string, unknown>) => {
   const EmailLogQuery = new QueryBuilder(EmailLog.find().populate("studentId","name email").populate("emailConfigId"), query)
     .search(EmailLogsSearchableFields)
-    .filter()
+    .filter(query)
     .sort()
     .paginate()
     .fields();

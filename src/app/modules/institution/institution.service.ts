@@ -28,7 +28,7 @@ const createInstitutionIntoDB = async (payload: TInstitution) => {
 const getAllInstitutionFromDB = async (query: Record<string, unknown>) => {
   const userQuery = new QueryBuilder(Institution.find(), query)
     .search(institutionSearchableFields)
-    .filter()
+    .filter(query)
     .sort()
     .paginate()
     .fields();
