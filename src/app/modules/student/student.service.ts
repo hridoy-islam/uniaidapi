@@ -421,6 +421,156 @@ const getSingleStudentFromDB = async (id: string) => {
   return result;
 };
 
+// const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   try {
+//     const student = await Student.findById(id).session(session);
+//     if (!student) {
+//       throw new AppError(httpStatus.NOT_FOUND, "Student not found");
+//     }
+//     if (payload.dob) {
+//       payload.dob = moment(payload.dob).format("YYYY-MM-DD");
+//     }
+
+//     // Handle agent assignment logic
+//     if (payload.agent) {
+//       const agent = await User.findById(payload.agent).session(session);
+//       if (!agent) {
+//         throw new AppError(httpStatus.NOT_FOUND, "Agent not found");
+//       }
+
+//       if (agent.email === "m.bhuiyan@lcc.ac.uk") {
+//         payload.assignStaff = [student.createdBy];
+//       } else {
+//         payload.assignStaff = agent.nominatedStaffs;
+//       }
+//     }
+
+//     // Prevent duplicate courseRelationId in applications
+//     if (payload.applications) {
+//       const newApplications = Array.isArray(payload.applications)
+//         ? payload.applications
+//         : [payload.applications];
+
+//       for (const newApp of newApplications) {
+//         if ((newApp as any)?.courseRelationId) {
+//           // Check if courseRelationId already exists in student's applications
+//           const duplicateExists = student.applications.some(
+//             (app:any) => app?.courseRelationId?.equals((newApp as any)?.courseRelationId)
+//           );
+
+//           if (duplicateExists) {
+//             // Get course details for better error message
+//             const courseRelation = await CourseRelation.findById(
+//               (newApp as any)?.courseRelationId
+//             )
+//               .populate("course")
+//               .session(session);
+
+//             const courseName = (courseRelation as any)?.course?.name || "Unknown Course";
+//             throw new AppError(httpStatus.BAD_REQUEST, `Duplicate Application`);
+//           }
+
+//           const courseRelation = await CourseRelation.findById(
+//             (newApp as any).courseRelationId
+//           )
+//             .populate("institute")
+//             .populate("course")
+//             .populate("term")
+//             .session(session);
+
+//           if (!courseRelation) {
+//             throw new AppError(httpStatus.NOT_FOUND, "Course not found");
+//           }
+
+//           const hasYear1 = courseRelation.years.some(
+//             (year) => year.year === "Year 1"
+//           );
+//           if (!hasYear1) {
+//             throw new AppError(
+//               httpStatus.BAD_REQUEST,
+//               "Please complete the course relation data first"
+//             );
+//           }
+
+//           if (!student.agent) {
+//             throw new AppError(
+//               httpStatus.BAD_REQUEST,
+//               "Student has no assigned agent"
+//             );
+//           }
+
+//           const agentCourse = await AgentCourse.findOne({
+//             agentId: student.agent,
+//             courseRelationId: (newApp as any).courseRelationId,
+//             status: 1,
+//           }).session(session);
+
+//           if (!agentCourse) {
+//             throw new AppError(
+//               httpStatus.BAD_REQUEST,
+//               "Agent is not assigned to this course"
+//             );
+//           }
+
+//           const courseInAccounts = student.accounts?.some((acc:any) =>
+//             acc.courseRelationId.equals((newApp as any).courseRelationId)
+//           );
+
+//           if (courseInAccounts) {
+//             throw new AppError(
+//               httpStatus.BAD_REQUEST,
+//               "Student already has this course in accounts"
+//             );
+//           }
+//         }
+//       }
+//     }
+
+//     //code update agentPayment
+//     if (payload?.agent && student?.agent !== payload?.agent) {
+//       const payment = student?.agentPayments?.[0];
+//       if (payment && payment.courseRelationId) {
+//         const assigned = await AgentCourse.findOne({
+//           agentId: payload.agent,
+//           courseRelationId: payment.courseRelationId,
+//           status: 1,
+//         }).session(session);
+
+//         if (!assigned) {
+//           throw new AppError(
+//             httpStatus.BAD_REQUEST,
+//             `Please check new agent's courses from agent profile.`
+//           );
+//         }
+
+//         // Update agent in the single agentPayment
+//         payment.agent = payload.agent;
+//         (payload as any).agentPayments = [payment];
+//       }
+//     }
+
+//     // const result = await Student.findByIdAndUpdate(id, payload, {
+//     //   new: true,
+//     //   runValidators: true,
+//     //   session,
+//     // });
+
+//     Object.assign(student, payload);
+//     const result = await student.save({ session });
+//     await session.commitTransaction();
+//     return result;
+//   } catch (error) {
+//     await session.abortTransaction();
+//     throw error;
+//   } finally {
+//     session.endSession();
+//   }
+// };
+
+
 const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -457,8 +607,8 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
       for (const newApp of newApplications) {
         if ((newApp as any)?.courseRelationId) {
           // Check if courseRelationId already exists in student's applications
-          const duplicateExists = student.applications.some(
-            (app:any) => app?.courseRelationId?.equals((newApp as any)?.courseRelationId)
+          const duplicateExists = student.applications.some((app: any) =>
+            app?.courseRelationId?.equals((newApp as any)?.courseRelationId)
           );
 
           if (duplicateExists) {
@@ -469,7 +619,8 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
               .populate("course")
               .session(session);
 
-            const courseName = (courseRelation as any)?.course?.name || "Unknown Course";
+            const courseName =
+              (courseRelation as any)?.course?.name || "Unknown Course";
             throw new AppError(httpStatus.BAD_REQUEST, `Duplicate Application`);
           }
 
@@ -515,7 +666,7 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
             );
           }
 
-          const courseInAccounts = student.accounts?.some((acc:any) =>
+          const courseInAccounts = student.accounts?.some((acc: any) =>
             acc.courseRelationId.equals((newApp as any).courseRelationId)
           );
 
@@ -527,9 +678,17 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
           }
         }
       }
+
+      // === FIX STARTS HERE ===
+      // 1. Push the validated new applications into the existing mongoose array
+      student.applications.push(...newApplications);
+
+      // 2. IMPORTANT: Delete applications from payload so Object.assign doesn't overwrite the array
+      delete payload.applications;
+
     }
 
-    //code update agentPayment
+    // code update agentPayment
     if (payload?.agent && student?.agent !== payload?.agent) {
       const payment = student?.agentPayments?.[0];
       if (payment && payment.courseRelationId) {
@@ -552,13 +711,8 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
       }
     }
 
-    // const result = await Student.findByIdAndUpdate(id, payload, {
-    //   new: true,
-    //   runValidators: true,
-    //   session,
-    // });
-
     Object.assign(student, payload);
+
     const result = await student.save({ session });
     await session.commitTransaction();
     return result;
@@ -569,6 +723,7 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
     session.endSession();
   }
 };
+
 
 const updateStudentApplicationIntoDB = async (
   id: string,
