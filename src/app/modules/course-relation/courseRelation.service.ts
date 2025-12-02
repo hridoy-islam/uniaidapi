@@ -535,8 +535,8 @@ const updateCourseRelationIntoDB = async (
 
                 if (
                   updatedSession &&
-                  session.invoiceDate.toISOString() !==
-                    updatedSession.invoiceDate.toISOString()
+                  new Date(session.invoiceDate).toISOString() !==
+                  new Date(updatedSession.invoiceDate).toISOString()
                 ) {
                   session.invoiceDate = updatedSession.invoiceDate;
                   isModified = true;
