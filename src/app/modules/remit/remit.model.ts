@@ -28,7 +28,9 @@ const invoiceSchema = new Schema(
     session: { type: String },
     semester: { type: String },
     course: { type: String },
-    exported: { type: Boolean, default: false }
+    exported: { type: Boolean, default: false },
+    adjustmentType:{ type: String, enum: ["percentage", "flat"] },
+    adjustmentBalance:{ type: Number, default: 0 },
   },
   {
     timestamps: true,

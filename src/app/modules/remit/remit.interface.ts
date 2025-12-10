@@ -23,6 +23,8 @@ export interface TRemit {
   session: string;
   semester: string;
   course: string;
-  exported:boolean
+  exported:boolean;
+  adjustmentType: "percentage" | "flat" ;
+  adjustmentBalance: number;
 }
 
