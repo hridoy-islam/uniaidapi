@@ -139,7 +139,7 @@ const updateCourseRelationIntoDB = async (
                 newYear.year === "Year 1" &&
                 newSession.invoiceDate &&
                 existingSessions[existingSessionIndex].invoiceDate !==
-                  newSession.invoiceDate
+                newSession.invoiceDate
               ) {
                 year1Updated = true;
               }
@@ -236,16 +236,16 @@ const updateCourseRelationIntoDB = async (
 
         // Update accounts (can include all years)
         const accountIndex = (student as any).accounts.findIndex(
-          (acc:any) => acc.courseRelationId.toString() === id
+          (acc: any) => acc.courseRelationId.toString() === id
         );
 
         if (accountIndex !== -1) {
           const existingAccountYears = (student as any).accounts[accountIndex].years.map(
-            (year:any) => ({
+            (year: any) => ({
               _id: year._id || new Types.ObjectId(),
               year: year.year,
               sessions:
-                year.sessions?.map((session:any) => ({
+                year.sessions?.map((session: any) => ({
                   _id: session._id || new Types.ObjectId(),
                   sessionName: session.sessionName,
                   invoiceDate: session.invoiceDate,
@@ -258,7 +258,7 @@ const updateCourseRelationIntoDB = async (
 
           payload.years?.forEach((newYear) => {
             const existingYearIndex = existingAccountYears.findIndex(
-              (y:any) => y.year === newYear.year
+              (y: any) => y.year === newYear.year
             );
 
             if (existingYearIndex !== -1) {
@@ -267,7 +267,7 @@ const updateCourseRelationIntoDB = async (
 
               newYear.sessions?.forEach((newSession) => {
                 const existingSessionIndex = existingSessions.findIndex(
-                  (s:any) => s.sessionName === newSession.sessionName
+                  (s: any) => s.sessionName === newSession.sessionName
                 );
 
                 if (existingSessionIndex !== -1) {
@@ -323,7 +323,7 @@ const updateCourseRelationIntoDB = async (
 
         // Update agentPayments (Year 1 only)
         const paymentIndex = (student as any).agentPayments.findIndex(
-          (payment:any) => payment.courseRelationId.toString() === id
+          (payment: any) => payment.courseRelationId.toString() === id
         );
 
         if (paymentIndex !== -1) {
@@ -333,11 +333,11 @@ const updateCourseRelationIntoDB = async (
           if (year1Data) {
             const existingPaymentYears = (student as any).agentPayments[
               paymentIndex
-            ].years.map((year:any) => ({
+            ].years.map((year: any) => ({
               _id: year._id || new Types.ObjectId(),
               year: year.year,
               sessions:
-                year.sessions?.map((session:any) => ({
+                year.sessions?.map((session: any) => ({
                   _id: session._id || new Types.ObjectId(),
                   sessionName: session.sessionName,
                   invoiceDate: session.invoiceDate,
@@ -348,7 +348,7 @@ const updateCourseRelationIntoDB = async (
             }));
 
             const existingYearIndex = existingPaymentYears.findIndex(
-              (y:any) => y.year === "Year 1"
+              (y: any) => y.year === "Year 1"
             );
 
             if (existingYearIndex !== -1) {
@@ -357,7 +357,7 @@ const updateCourseRelationIntoDB = async (
 
               year1Data.sessions?.forEach((newSession) => {
                 const existingSessionIndex = existingSessions.findIndex(
-                  (s:any) => s.sessionName === newSession.sessionName
+                  (s: any) => s.sessionName === newSession.sessionName
                 );
 
                 if (existingSessionIndex !== -1) {
@@ -408,7 +408,7 @@ const updateCourseRelationIntoDB = async (
 
             // Ensure we only have Year 1 in agentPayments
             (student as any).agentPayments[paymentIndex].years =
-              existingPaymentYears.filter((y:any) => y.year === "Year 1");
+              existingPaymentYears.filter((y: any) => y.year === "Year 1");
             isModified = true;
           }
         }
@@ -425,9 +425,9 @@ const updateCourseRelationIntoDB = async (
               // Handle validation errors specifically for agentPayments
               if ((error as any).errors?.agentPayments) {
                 // Remove any non-Year 1 data that might have slipped through
-                (student as any).agentPayments.forEach((payment:any) => {
+                (student as any).agentPayments.forEach((payment: any) => {
                   payment.years = payment.years.filter(
-                    (y:any) => y.year === "Year 1"
+                    (y: any) => y.year === "Year 1"
                   );
                 });
                 await student.save({ session }); // Try saving again
@@ -524,7 +524,7 @@ const updateCourseRelationIntoDB = async (
 
               // Filter to only Year 1 sessions
               const year1Payment = payment.years.find(
-                (y:any) => y.year === "Year 1"
+                (y: any) => y.year === "Year 1"
               );
               if (!year1Payment) continue;
 
@@ -535,8 +535,9 @@ const updateCourseRelationIntoDB = async (
 
                 if (
                   updatedSession &&
-                  session.invoiceDate.toISOString() !==
-                    updatedSession.invoiceDate.toISOString()
+                  new Date(session.invoiceDate).toISOString() !==
+                  new Date(updatedSession.invoiceDate).toISOString()
+
                 ) {
                   session.invoiceDate = updatedSession.invoiceDate;
                   isModified = true;
