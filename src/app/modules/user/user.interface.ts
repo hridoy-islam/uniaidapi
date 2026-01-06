@@ -41,9 +41,12 @@ export interface TUser {
   postCode?: string;
   country?: string;
   imgUrl?: string;
+  companyPhone: { type: String };
+
   sortCode?: string;
   accountNo?: string;
   beneficiary?: string;
+  vatNo: string;
   privileges: {
     management: {
       course: boolean;

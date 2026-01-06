@@ -29,6 +29,13 @@ export interface TInvoice {
   session: string;
   semester: string;
   course: string;
-  exported:boolean
+  exported: boolean;
+  companyName?: string;
+  companyAddress?: string;
+  companyEmail?: string;
+  companyVatNo?: string;
+  companyCountry?: string;
+  companyCity?: string;
+  companyPostalCode?: string;
 }
 

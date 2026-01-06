@@ -36,6 +36,13 @@ const invoiceSchema = new Schema(
     discountAmount: { type: Number , default:0},
     discountMsg: { type: String , default:""},
     vat: { type: Number, default: 0 },
+    companyName: { type: String },
+    companyAddress: { type: String },
+    companyEmail: { type: String },
+    companyVatNo: { type: String },
+    companyCountry: { type: String },
+    companyCity: { type: String },
+    companyPostalCode: { type: String },
   },
   {
     timestamps: true,

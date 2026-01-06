@@ -72,6 +72,7 @@ const userSchema = new Schema(
       type: String,
       default: "",
     },
+    vatNo: { type: String, default: "" },
 
     sortCode: { type: String },
     accountNo: { type: String },
