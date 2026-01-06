@@ -599,95 +599,109 @@ const updateStudentIntoDB = async (id: string, payload: Partial<TStudent>) => {
     }
 
     // Prevent duplicate courseRelationId in applications
-    if (payload.applications) {
-      const newApplications = Array.isArray(payload.applications)
-        ? payload.applications
-        : [payload.applications];
+   if (payload.applications && Array.isArray(payload.applications)) {
+     // We process each app in the payload
+     for (const appData of payload.applications) {
+       // SAFE ID CHECK: Ensure appData has an _id and student.applications exists
+       const appId = (appData as any)._id;
 
-      for (const newApp of newApplications) {
-        if ((newApp as any)?.courseRelationId) {
-          // Check if courseRelationId already exists in student's applications
-          const duplicateExists = student.applications.some((app: any) =>
-            app?.courseRelationId?.equals((newApp as any)?.courseRelationId)
-          );
+     
+       const existingApp = appId
+         ? student.applications.find(
+             (app) => (app as any)._id.toString() === appId.toString()
+           )
+         : null;
 
-          if (duplicateExists) {
-            // Get course details for better error message
-            const courseRelation = await CourseRelation.findById(
-              (newApp as any)?.courseRelationId
-            )
-              .populate("course")
-              .session(session);
+       if (existingApp) {
+         // === UPDATE EXISTING ===
+         // Manually update fields to avoid type conflicts with strict strict mode
+         if ((appData as any).isActive !== undefined)
+           (existingApp as any).isActive = (appData as any).isActive;
+         if ((appData as any).status) (existingApp as any).status = (appData as any).status;
+         if ((appData as any).amount) (existingApp as any).amount = (appData as any).amount;
+         if ((appData as any).choice) (existingApp as any).choice = (appData as any).choice;
+       } else {
+         // === INSERT NEW ===
+         // 1. Safe Extraction of courseRelationId (handle object vs string)
+         const rawRelId = (appData as any).courseRelationId;
+         const relationId = rawRelId?._id ? rawRelId._id : rawRelId;
 
-            const courseName =
-              (courseRelation as any)?.course?.name || "Unknown Course";
-            throw new AppError(httpStatus.BAD_REQUEST, `Duplicate Application`);
-          }
+         if (!relationId) continue; // Skip if invalid
 
-          const courseRelation = await CourseRelation.findById(
-            (newApp as any).courseRelationId
-          )
-            .populate("institute")
-            .populate("course")
-            .populate("term")
-            .session(session);
+         // 2. Check for Duplicates in existing array
+         const isDuplicate = student.applications.some(
+           (app: any) =>
+             app.courseRelationId?.toString() === relationId.toString()
+         );
 
-          if (!courseRelation) {
-            throw new AppError(httpStatus.NOT_FOUND, "Course not found");
-          }
+         if (isDuplicate) {
+           throw new AppError(
+             httpStatus.BAD_REQUEST,
+             "Student has already applied for this course."
+           );
+         }
 
-          const hasYear1 = courseRelation.years.some(
-            (year) => year.year === "Year 1"
-          );
-          if (!hasYear1) {
-            throw new AppError(
-              httpStatus.BAD_REQUEST,
-              "Please complete the course relation data first"
-            );
-          }
+         // 3. Validations
+         const courseRelation = await CourseRelation.findById(relationId)
+           .populate("institute")
+           .populate("course")
+           .populate("term")
+           .session(session);
 
-          if (!student.agent) {
-            throw new AppError(
-              httpStatus.BAD_REQUEST,
-              "Student has no assigned agent"
-            );
-          }
+         if (!courseRelation)
+           throw new AppError(httpStatus.NOT_FOUND, "Course not found");
 
-          const agentCourse = await AgentCourse.findOne({
-            agentId: student.agent,
-            courseRelationId: (newApp as any).courseRelationId,
-            status: 1,
-          }).session(session);
+         const hasYear1 = (courseRelation as any).years?.some(
+           (y: any) => y.year === "Year 1"
+         );
+         if (!hasYear1)
+           throw new AppError(
+             httpStatus.BAD_REQUEST,
+             "Please complete course relation data"
+           );
 
-          if (!agentCourse) {
-            throw new AppError(
-              httpStatus.BAD_REQUEST,
-              "Agent is not assigned to this course"
-            );
-          }
+         if (!student.agent)
+           throw new AppError(
+             httpStatus.BAD_REQUEST,
+             "Student has no assigned agent"
+           );
 
-          const courseInAccounts = student.accounts?.some((acc: any) =>
-            acc.courseRelationId.equals((newApp as any).courseRelationId)
-          );
+         const agentCourse = await AgentCourse.findOne({
+           agentId: student.agent,
+           courseRelationId: relationId,
+           status: 1,
+         }).session(session);
 
-          if (courseInAccounts) {
-            throw new AppError(
-              httpStatus.BAD_REQUEST,
-              "Student already has this course in accounts"
-            );
-          }
-        }
-      }
+         if (!agentCourse)
+           throw new AppError(
+             httpStatus.BAD_REQUEST,
+             "Agent is not assigned to this course"
+           );
 
-      // === FIX STARTS HERE ===
-      // 1. Push the validated new applications into the existing mongoose array
-      student.applications.push(...newApplications);
+         const courseInAccounts = (student as any).accounts?.some(
+           (acc: any) =>
+             acc.courseRelationId.toString() === relationId.toString()
+         );
 
-      // 2. IMPORTANT: Delete applications from payload so Object.assign doesn't overwrite the array
-      delete payload.applications;
+         if (courseInAccounts)
+           throw new AppError(
+             httpStatus.BAD_REQUEST,
+             "Student already has this course in accounts"
+           );
 
-    }
+         // 4. Push New (Clean Object)
+         student.applications.push({
+           ...appData,
+           courseRelationId: relationId, 
+           _id: new Types.ObjectId(), 
+         } as any);
+       }
+     }
 
+     // REMOVE applications from payload so Object.assign doesn't overwrite our work
+     delete payload.applications;
+   }
+    
     // code update agentPayment
     if (payload?.agent && student?.agent !== payload?.agent) {
       const payment = student?.agentPayments?.[0];
