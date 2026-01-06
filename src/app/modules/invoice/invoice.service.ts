@@ -7,6 +7,7 @@ import { InvoiceSearchableFields } from "./invoice.constant";
 import { TInvoice } from "./invoice.interface";
 import Student from "../student/student.model";
 import moment from "moment";
+import { User } from "../user/user.model";
 
 
 const createInvoiceIntoDB = async (payload: TInvoice) => {
@@ -39,6 +40,20 @@ const createInvoiceIntoDB = async (payload: TInvoice) => {
 
     // Attach generated reference to payload
     payload.reference = generatedReference;
+    let user = null;
+    if (payload.createdBy) {
+      user = await User.findById(payload.createdBy).lean();
+    }
+
+    // Map user fields to payload company fields, defaulting to "" if missing
+    payload.companyName = user?.name || "";
+    payload.companyAddress = user?.location || "";
+    payload.companyEmail = user?.email || "";
+    payload.companyCountry = user?.country || "";
+    payload.companyCity = user?.city || "";
+    payload.companyPostalCode = user?.postCode || "";
+    payload.companyState = user?.state || "";
+    payload.companyVatNo = user?.vatNo || "";
 
     // Create the invoice
     const result = await Invoice.create(payload);

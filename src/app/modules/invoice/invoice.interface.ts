@@ -7,8 +7,8 @@ export interface TInvoice {
   noOfStudents: number;
   logo: string;
 
-  customer:Types.ObjectId;
-  bank:Types.ObjectId;
+  customer: Types.ObjectId;
+  bank: Types.ObjectId;
   students: {
     collegeRoll: string;
     refId: string;
@@ -24,11 +24,19 @@ export interface TInvoice {
   vat: number;
   status: "due" | "paid";
   createdBy: Types.ObjectId;
-  courseRelationId: Types.ObjectId; 
+  courseRelationId: Types.ObjectId;
   year: string;
   session: string;
   semester: string;
   course: string;
-  exported:boolean
+  exported: boolean;
+  companyName?: string;
+  companyAddress?: string;
+  companyEmail?: string;
+  companyVatNo?: string;
+  companyCountry?: string;
+  companyCity?: string;
+  companyPostalCode?: string;
+  companyState?: string;
 }
 

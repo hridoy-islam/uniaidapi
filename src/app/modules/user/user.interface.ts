@@ -41,6 +41,7 @@ export interface TUser {
   postCode?: string;
   country?: string;
   imgUrl?: string;
+  vatNo?: string;
   sortCode?: string;
   accountNo?: string;
   beneficiary?: string;
