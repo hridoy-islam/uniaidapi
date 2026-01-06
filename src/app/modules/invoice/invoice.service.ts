@@ -53,6 +53,7 @@ const createInvoiceIntoDB = async (payload: TInvoice) => {
     payload.companyCountry = user?.country || "";
     payload.companyCity = user?.city || "";
     payload.companyPostalCode = user?.postCode || "";
+    payload.companyState = user?.state || "";
     payload.companyVatNo = user?.vatNo || "";
     
 

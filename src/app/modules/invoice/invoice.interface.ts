@@ -37,5 +37,6 @@ export interface TInvoice {
   companyCountry?: string;
   companyCity?: string;
   companyPostalCode?: string;
+  companyState?: string;
 }
 

@@ -43,6 +43,7 @@ const invoiceSchema = new Schema(
     companyCountry: { type: String },
     companyCity: { type: String },
     companyPostalCode: { type: String },
+    companyState: { type: String },
   },
   {
     timestamps: true,
