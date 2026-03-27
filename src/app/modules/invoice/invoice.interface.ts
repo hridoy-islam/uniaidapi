@@ -38,5 +38,6 @@ export interface TInvoice {
   companyCity?: string;
   companyPostalCode?: string;
   companyState?: string;
+  vatBeforeDiscount?:boolean;
 }
 

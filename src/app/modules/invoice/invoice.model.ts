@@ -53,13 +53,12 @@ const invoiceSchema = new Schema(
     companyCity: { type: String },
     companyPostalCode: { type: String },
     companyState: { type: String },
+    vatBeforeDiscount: { type: Boolean, default: true },
   },
   {
     timestamps: true,
-  }
+  },
 );
-
-
 
 const Invoice = mongoose.model<TInvoice & Document>("Invoice", invoiceSchema);
 
