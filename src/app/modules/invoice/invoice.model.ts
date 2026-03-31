@@ -54,6 +54,7 @@ const invoiceSchema = new Schema(
     companyPostalCode: { type: String },
     companyState: { type: String },
     vatBeforeDiscount: { type: Boolean, default: true },
+    generatedRemit: { type: Boolean, default: false },
   },
   {
     timestamps: true,

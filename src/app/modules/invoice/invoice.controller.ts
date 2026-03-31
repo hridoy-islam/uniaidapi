@@ -49,10 +49,23 @@ const updateInvoice = catchAsync(async (req, res) => {
 
 
 
+const generateRemit = catchAsync(async (req, res) => {
+  const { id } = req.params;
+const createdByUserId = req.body.createdBy || (req.user as any)?._id;
+  const result = await InvoiceServices.generateRemitFromInvoice(id, createdByUserId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Remit generated successfully",
+    data: result,
+  });
+});
 
 export const InvoiceControllers = {
   getAllInvoice,
   getSingleInvoice,
   updateInvoice,
-  InvoiceCreate
+  InvoiceCreate,
+  generateRemit
 };

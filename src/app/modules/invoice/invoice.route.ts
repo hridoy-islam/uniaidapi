@@ -28,5 +28,10 @@ router.patch(
   InvoiceControllers.updateInvoice
 );
 
+router.post(
+  "/generate-remit/:id",
+  InvoiceControllers.generateRemit
+);
+
 
 export const InvoiceRoutes = router;
