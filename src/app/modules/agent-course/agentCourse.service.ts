@@ -118,10 +118,19 @@ const updateAgentCourseIntoDB = async (id: string, payload: Partial<TAgentCourse
             (s) => s.sessionName === session.sessionName
           );
 
-          if (updatedSession && session.invoiceDate.toISOString() !== updatedSession.invoiceDate.toISOString()) {
-            session.invoiceDate = updatedSession.invoiceDate;
+          // if (updatedSession && session.invoiceDate.toISOString() !== updatedSession.invoiceDate.toISOString()) {
+          //   session.invoiceDate = updatedSession.invoiceDate;
+          //   isModified = true;
+          // }
+          if (
+            updatedSession &&
+            new Date(session.invoiceDate).getTime() !== new Date(updatedSession.invoiceDate).getTime()
+          ) {
+            session.invoiceDate = new Date(updatedSession.invoiceDate);
             isModified = true;
           }
+
+
         }
       }
     }
@@ -133,6 +142,7 @@ const updateAgentCourseIntoDB = async (id: string, payload: Partial<TAgentCourse
 
   return result;
 };
+
 
 
 
