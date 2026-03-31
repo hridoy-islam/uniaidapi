@@ -12,7 +12,8 @@ export interface TInvoice {
   students: {
     collegeRoll: string;
     refId: string;
-    name: string;
+    firstName: string;
+    lastName: string;
     course: string;
     amount: number;
   }[];
@@ -39,5 +40,6 @@ export interface TInvoice {
   companyPostalCode?: string;
   companyState?: string;
   vatBeforeDiscount?:boolean;
+  generatedRemit?:boolean;
 }
 
