@@ -584,7 +584,6 @@ const updateStudentApplicationIntoDB = async (
   try {
     const { newStatus, changedBy } = payload;
 
-    // 1. Find the student and application
     const student = await Student.findById(id).session(session);
     if (!student) {
       throw new AppError(httpStatus.NOT_FOUND, "Student not found");
@@ -597,10 +596,10 @@ const updateStudentApplicationIntoDB = async (
       throw new AppError(httpStatus.NOT_FOUND, "Application not found");
     }
 
-    // 2. Handle status log according to your schema requirements
     const previousStatus = (application as any).status || null;
     const isInitialStatus =
-      !(application as any).statusLogs || (application as any).statusLogs.length === 0;
+      !(application as any).statusLogs ||
+      (application as any).statusLogs.length === 0;
 
     const statusLog: any = {
       prev_status: previousStatus,
@@ -611,20 +610,48 @@ const updateStudentApplicationIntoDB = async (
     if (isInitialStatus) {
       statusLog.changed_by = changedBy;
     } else {
-      const lastLog = (application as any).statusLogs[(application as any).statusLogs.length - 1];
+      const lastLog =
+        (application as any).statusLogs[
+          (application as any).statusLogs.length - 1
+        ];
       statusLog.assigned_by = lastLog.changed_by;
       statusLog.assigned_at = lastLog.created_at;
       statusLog.changed_by = changedBy;
     }
 
     (application as any).status = newStatus;
-    (application as any).statusLogs = [...((application as any).statusLogs || []), statusLog];
+    (application as any).statusLogs = [
+      ...((application as any).statusLogs || []),
+      statusLog,
+    ];
 
-    // 3. Handle enrollment logic if status is 'Enrolled'
+    // ─── REJECTION CLEANUP ───────────────────────────────────────────
+    if (newStatus === "Rejected") {
+      const rejectedCourseRelationId = (application as any).courseRelationId?._id
+        ?? (application as any).courseRelationId;
+
+      if (rejectedCourseRelationId) {
+        // Remove from accounts
+        student.accounts = (student.accounts || []).filter(
+          (acc: any) =>
+            acc.courseRelationId?._id?.toString() !== rejectedCourseRelationId.toString() &&
+            acc.courseRelationId?.toString() !== rejectedCourseRelationId.toString()
+        ) as any;
+
+        // Remove from agentPayments
+        student.agentPayments = (student.agentPayments || []).filter(
+          (payment: any) =>
+            payment.courseRelationId?._id?.toString() !== rejectedCourseRelationId.toString() &&
+            payment.courseRelationId?.toString() !== rejectedCourseRelationId.toString()
+        ) as any;
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────
+
+    // ─── ENROLLMENT LOGIC ─────────────────────────────────────────────
     if (newStatus === "Enrolled") {
       const courseRelationId = (application as any).courseRelationId;
 
-      // Validation check for "Year 1" in course relation
       const courseRelation = await CourseRelation.findById(courseRelationId)
         .populate("institute")
         .populate("course")
@@ -635,9 +662,7 @@ const updateStudentApplicationIntoDB = async (
         throw new AppError(httpStatus.NOT_FOUND, "Course not found");
       }
 
-      const hasYear1 = courseRelation.years.some(
-        (year) => year.year === "Year 1"
-      );
+      const hasYear1 = courseRelation.years.some((year) => year.year === "Year 1");
       if (!hasYear1) {
         throw new AppError(
           httpStatus.BAD_REQUEST,
@@ -645,12 +670,8 @@ const updateStudentApplicationIntoDB = async (
         );
       }
 
-      // Proceed with the rest of the logic
       if (!student.agent) {
-        throw new AppError(
-          httpStatus.BAD_REQUEST,
-          "Student has no assigned agent"
-        );
+        throw new AppError(httpStatus.BAD_REQUEST, "Student has no assigned agent");
       }
 
       const agentCourse = await AgentCourse.findOne({
@@ -667,7 +688,7 @@ const updateStudentApplicationIntoDB = async (
       }
 
       if (
-        student.accounts?.some((acc:any) =>
+        student.accounts?.some((acc: any) =>
           acc.courseRelationId.equals(courseRelationId)
         )
       ) {
@@ -677,7 +698,6 @@ const updateStudentApplicationIntoDB = async (
         );
       }
 
-      // Create accounts entry
       const accountsData = {
         courseRelationId: courseRelationId,
         years: courseRelation.years.map((year) => ({
@@ -693,7 +713,6 @@ const updateStudentApplicationIntoDB = async (
       student.accounts = student.accounts || [];
       student.accounts.push(accountsData as any);
 
-      // Handle agent payments - Find Year 1 data
       const year1 = courseRelation.years.find((y) => y.year === "Year 1");
       if (year1) {
         student.agentPayments = student.agentPayments || [];
@@ -734,6 +753,7 @@ const updateStudentApplicationIntoDB = async (
         }
       }
     }
+    // ─────────────────────────────────────────────────────────────────
 
     await student.save({ session });
     await session.commitTransaction();
